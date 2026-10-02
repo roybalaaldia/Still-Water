@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stillwater Koi Pond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,100;1,9..144,300..500,100&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: a full-bleed koi pond at night; the timer floats on the moon's reflection, controls drift at the pond's edges. */
+:root {
+  color-scheme: dark;
+  --bg: #0a1b22;
+  --water-top: #0d2630;
+  --water-bottom: #08171d;
+  --caustic: 120, 190, 180;
+  --fg: #e6efe8;
+  --muted: #9fbab4;
+  --faint: rgba(230, 239, 232, 0.14);
+  --surface: rgba(10, 30, 37, 0.72);
+  --sheet: #0e242c;
+  --line: rgba(190, 220, 210, 0.18);
+  --accent: #f2b872;
+  --accent-ink: #1d2422;
+  --moon: 246, 222, 176;
+  --pad: #2b5a47;
+  --pad-hi: #3f7b5d;
+  --vein: rgba(10, 40, 30, 0.45);
+  --petal: #f1b9c6;
+  --shadow: rgba(0, 6, 10, 0.32);
+  --ripple: 200, 235, 225;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #d7e7df; --water-top: #cfe3da; --water-bottom: #b3d1c6; --caustic: 255, 255, 240;
+    --fg: #12302d; --muted: #3e5f5a; --faint: rgba(18, 48, 45, 0.14);
+    --surface: rgba(232, 242, 236, 0.78); --sheet: #e8f1ec; --line: rgba(18, 60, 52, 0.2);
+    --accent: #c46a1f; --accent-ink: #fff8ef; --moon: 255, 214, 140;
+    --pad: #5f9a6f; --pad-hi: #82b78d; --vein: rgba(30, 70, 45, 0.35); --petal: #ec9fb3;
+    --shadow: rgba(20, 70, 70, 0.18); --ripple: 255, 255, 255;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #d7e7df; --water-top: #cfe3da; --water-bottom: #b3d1c6; --caustic: 255, 255, 240;
+  --fg: #12302d; --muted: #3e5f5a; --faint: rgba(18, 48, 45, 0.14);
+  --surface: rgba(232, 242, 236, 0.78); --sheet: #e8f1ec; --line: rgba(18, 60, 52, 0.2);
+  --accent: #c46a1f; --accent-ink: #fff8ef; --moon: 255, 214, 140;
+  --pad: #5f9a6f; --pad-hi: #82b78d; --vein: rgba(30, 70, 45, 0.35); --petal: #ec9fb3;
+  --shadow: rgba(20, 70, 70, 0.18); --ripple: 255, 255, 255;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 999px; }
+
+#pond { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+
+.ui {
+  position: fixed; inset: 0; pointer-events: none;
+  display: grid; grid-template-rows: auto 1fr auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) clamp(16px, 4vw, 40px) calc(env(safe-area-inset-bottom, 0px) + 18px);
+}
+.ui > * { min-width: 0; }
+.ui button, .ui select, .ui input, .ui a { pointer-events: auto; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 1.35rem; letter-spacing: -0.01em; font-variation-settings: "SOFT" 100, "opsz" 48; margin: 0; }
+.brand span { color: var(--muted); font-style: normal; font-family: var(--font-body); font-size: .8rem; letter-spacing: .02em; margin-left: .6em; }
+.tools { display: flex; gap: 8px; }
+
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  transition: transform .4s cubic-bezier(.16,1,.3,1), background-color .3s, border-color .3s;
+}
+.icon-btn:hover { transform: translateY(-2px); border-color: var(--accent); }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.pill-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 12px;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; cursor: pointer; font-weight: 500; font-size: .9rem;
+  transition: transform .4s cubic-bezier(.16,1,.3,1), border-color .3s, color .3s;
+}
+.pill-btn:hover { transform: translateY(-2px); border-color: var(--accent); }
+.pill-btn svg { width: 20px; height: 20px; }
+.pill-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+
+/* Center stage */
+.stage { display: grid; place-items: center; align-content: center; gap: clamp(10px, 2.2vh, 20px); text-align: center; }
+.modes { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.modes button {
+  border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: .86rem; font-weight: 500; color: var(--muted);
+  transition: background-color .3s, color .3s;
+}
+.modes button:hover { color: var(--fg); }
+.modes button[aria-selected="true"] { background: var(--fg); color: var(--bg); }
+
+.time {
+  font-family: var(--font-display); font-weight: 300; font-size: clamp(4.25rem, 17vw, 6rem); line-height: 1; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums; font-variation-settings: "SOFT" 100, "opsz" 144;
+  margin: 4px 0 0; text-shadow: 0 2px 24px var(--shadow);
+}
+.status { margin: 0; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
+.cue {
+  font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: clamp(1.15rem, 3.4vw, 1.45rem);
+  font-variation-settings: "SOFT" 100, "opsz" 36; margin: 0; min-height: 1.5em; color: var(--fg);
+  transition: opacity .9s ease;
+}
+.suggest { margin: 0; max-width: 34ch; color: var(--muted); font-size: .95rem; text-wrap: balance; min-height: 3em; }
+
+.controls { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.primary {
+  height: 56px; min-width: 148px; padding: 0 26px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 1rem; letter-spacing: .01em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 0 10px 30px -8px rgba(var(--moon), .45), 0 2px 6px var(--shadow);
+  transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s;
+}
+.primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 16px 40px -10px rgba(var(--moon), .6), 0 2px 6px var(--shadow); }
+.primary:active { transform: translateY(0) scale(.98); }
+.primary svg { width: 20px; height: 20px; }
+
+.toast {
+  margin: 0; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line);
+  font-size: .9rem; opacity: 0; transform: translateY(6px); transition: opacity .7s, transform .7s cubic-bezier(.16,1,.3,1);
+}
+.toast.show { opacity: 1; transform: none; }
+
+/* Footer */
+.bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
+.rounds { display: flex; align-items: center; gap: 10px; }
+.stones { display: flex; gap: 6px; }
+.stones i { width: 12px; height: 9px; border-radius: 50%; border: 1px solid var(--muted); display: block; transition: background-color .6s, border-color .6s; }
+.stones i.done { background: var(--accent); border-color: var(--accent); }
+.hint { text-align: center; flex: 1 1 220px; }
+.today { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Settings sheet */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: opacity .5s; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 100%); background: var(--sheet); border-left: 1px solid var(--line);
+  transform: translateX(104%); transition: transform .6s cubic-bezier(.16,1,.3,1); overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) 24px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  box-shadow: -20px 0 60px -20px var(--shadow);
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.sheet.open { transform: none; }
+.sheet header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.sheet h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; font-variation-settings: "SOFT" 100; }
+.sheet h3 { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 28px 0 12px; }
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.field label { font-weight: 500; }
+.field output { font-variant-numeric: tabular-nums; color: var(--muted); }
+.check { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 3px 0 0; flex: none; }
+.note { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
+.scapes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.scapes button {
+  text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: transparent; cursor: pointer;
+  transition: border-color .3s, background-color .3s;
+}
+.scapes button b { display: block; font-weight: 600; font-size: .9rem; }
+.scapes button small { color: var(--muted); font-size: .8rem; }
+.scapes button:hover { border-color: var(--muted); }
+.scapes button[aria-pressed="true"] { border-color: var(--accent); background: var(--faint); }
+.ghost { height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-weight: 500; }
+.ghost:hover { border-color: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: .9rem; color: var(--muted); margin: 0; }
+.keys dt { font-family: var(--font-body); font-weight: 600; color: var(--fg); }
+.keys dd { margin: 0; }
+kbd { font-family: inherit; font-size: .8rem; padding: 1px 7px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--line) var(--p, 50%)); }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--fg); border: 3px solid var(--accent); margin-top: -7px; }
+input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 3px solid var(--accent); }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .brand span { display: none; }
+  .pill-btn .lbl { display: none; }
+  .pill-btn { padding: 0; width: 44px; justify-content: center; }
+  .hint { order: 3; flex-basis: 100%; }
+  .modes button { padding: 7px 11px; }
+}
+@media (max-height: 560px) {
+  .suggest { display: none; }
+  .time { font-size: clamp(3.5rem, 13vh, 5rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01s !important; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="pond" aria-label="Koi pond. Tap the water to feed the koi." role="img"></canvas>
+
+<div class="ui">
+  <header class="top">
+    <h1 class="brand">Stillwater <span>a pond that keeps time</span></h1>
+    <div class="tools">
+      <button class="pill-btn" id="musicBtn" aria-pressed="false" title="Music (M)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="musicIcon" d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+        <span class="lbl" id="musicLbl">Music off</span>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Open settings" aria-expanded="false" aria-controls="sheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="modes" role="tablist" aria-label="Session type">
+      <button role="tab" data-mode="focus" aria-selected="true">Focus</button>
+      <button role="tab" data-mode="short" aria-selected="false">Short rest</button>
+      <button role="tab" data-mode="long" aria-selected="false">Long rest</button>
+    </div>
+    <p class="time" id="time" aria-live="off">25:00</p>
+    <p class="status" id="status">25 minutes of focus. Press Start when you're ready.</p>
+    <p class="cue" id="cue" aria-live="polite"></p>
+    <p class="suggest" id="suggest">Tap the water to feed the koi.</p>
+    <div class="controls">
+      <button class="icon-btn" id="resetBtn" aria-label="Restart this session" title="Restart (R)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <button class="primary" id="startBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="startIcon"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        <span id="startLbl">Start</span>
+      </button>
+      <button class="icon-btn" id="skipBtn" aria-label="Skip to next session" title="Skip (S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l10 7-10 7V5z"/><path d="M19 5v14"/></svg>
+      </button>
+    </div>
+    <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer class="bottom">
+    <div class="rounds"><div class="stones" id="stones" aria-hidden="true"></div><span id="roundLbl">Round 1 of 4</span></div>
+    <div class="hint">Tap to feed the koi · drag to stir the water</div>
+    <div class="today" id="today">0 focus rounds today</div>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-label="Settings" aria-hidden="true">
+  <header>
+    <h2>Settings</h2>
+    <button class="icon-btn" id="closeBtn" aria-label="Close settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+
+  <h3>Session lengths</h3>
+  <div class="field"><div class="field-row"><label for="focusLen">Focus</label><output id="focusOut" for="focusLen"></output></div><input type="range" id="focusLen" min="5" max="90" step="5"></div>
+  <div class="field"><div class="field-row"><label for="shortLen">Short rest</label><output id="shortOut" for="shortLen"></output></div><input type="range" id="shortLen" min="1" max="20" step="1"></div>
+  <div class="field"><div class="field-row"><label for="longLen">Long rest</label><output id="longOut" for="longLen"></output></div><input type="range" id="longLen" min="5" max="45" step="5"></div>
+  <div class="field"><div class="field-row"><label for="roundsLen">Focus rounds before a long rest</label><output id="roundsOut" for="roundsLen"></output></div><input type="range" id="roundsLen" min="2" max="8" step="1"></div>
+  <label class="check"><input type="checkbox" id="autoRest"><span>Start rests automatically when a focus round ends</span></label>
+  <label class="check"><input type="checkbox" id="autoFocus"><span>Start the next focus round automatically after a rest</span></label>
+
+  <h3>Soundscape</h3>
+  <div class="scapes" id="scapes">
+    <button data-scape="pond" aria-pressed="false"><b>Moonlit pond</b><small>Pads, wind chimes, water</small></button>
+    <button data-scape="rain" aria-pressed="false"><b>Soft rain</b><small>Rain on the leaves, warm pads</small></button>
+    <button data-scape="drone" aria-pressed="false"><b>Deep drone</b><small>Low, slow, almost still</small></button>
+    <button data-scape="garden" aria-pressed="false"><b>Night garden</b><small>Crickets, distant chimes</small></button>
+  </div>
+  <div class="field" style="margin-top:16px"><div class="field-row"><label for="musicVol">Music volume</label><output id="musicVolOut" for="musicVol"></output></div><input type="range" id="musicVol" min="0" max="100" step="1"></div>
+  <div class="field"><div class="field-row"><label for="bellVol">Bell and water volume</label><output id="bellVolOut" for="bellVol"></output></div><input type="range" id="bellVol" min="0" max="100" step="1"></div>
+  <div class="btn-row"><button class="ghost" id="testBell">Ring the bell</button><button class="ghost" id="notifyBtn">Allow desktop alerts</button></div>
+  <p class="note" id="notifyNote">The bell rings and the tab title changes when a session ends, even if this tab is in the background.</p>
+
+  <h3>Keyboard</h3>
+  <dl class="keys">
+    <dt><kbd>Space</kbd></dt><dd>Start or pause</dd>
+    <dt><kbd>S</kbd></dt><dd>Skip to the next session</dd>
+    <dt><kbd>R</kbd></dt><dd>Restart this session</dd>
+    <dt><kbd>M</kbd></dt><dd>Music on or off</dd>
+  </dl>
+</aside>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Settings & state ---------- */
+const defaults = { focus: 25, short: 5, long: 15, rounds: 4, autoRest: true, autoFocus: false, scape: 'pond', musicVol: 55, bellVol: 75 };
+const S = Object.assign({}, defaults, store.get('stillwater.settings', {}));
+const saveSettings = () => store.set('stillwater.settings', S);
+const todayKey = new Date().toDateString();
+let todayData = store.get('stillwater.today', { day: todayKey, count: 0 });
+if (todayData.day !== todayKey) todayData = { day: todayKey, count: 0 };
+
+const MODES = {
+  focus: { label: 'Focus', len: () => S.focus },
+  short: { label: 'Short rest', len: () => S.short },
+  long:  { label: 'Long rest', len: () => S.long }
+};
+const T = { mode: 'focus', running: false, endAt: 0, remaining: S.focus * 60000, cycle: 0, startedAt: 0 };
+const total = () => MODES[T.mode].len() * 60000;
+const progress = () => 1 - T.remaining / total();
+
+/* ---------- Audio engine (all synthesized, no files) ---------- */
+const AE = (() => {
+  let ctx, master, music, sfx, padFilter, rev;
+  let gen = 0, stops = [], musicOn = false;
+  const m2f = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  function noiseBuffer(kind, sec = 6) {
+    const len = ctx.sampleRate * sec, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      let last = 0, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        if (kind === 'brown') { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+        else {
+          b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+          b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+        }
+      }
+    }
+    return buf;
+  }
+  function impulse(sec, decay) {
+    const len = ctx.sampleRate * sec, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+    return buf;
+  }
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return true; }
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return false;
+    ctx = new C();
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3;
+    master = ctx.createGain(); master.connect(comp); comp.connect(ctx.destination);
+    rev = ctx.createConvolver(); rev.buffer = impulse(5, 2.6);
+    const rg = ctx.createGain(); rg.gain.value = .6; rev.connect(rg); rg.connect(master);
+    music = ctx.createGain(); music.gain.value = 0; music.connect(master);
+    const ms = ctx.createGain(); ms.gain.value = .75; music.connect(ms); ms.connect(rev);
+    sfx = ctx.createGain(); sfx.gain.value = S.bellVol / 100; sfx.connect(master);
+    const ss = ctx.createGain(); ss.gain.value = .7; sfx.connect(ss); ss.connect(rev);
+    padFilter = ctx.createBiquadFilter(); padFilter.type = 'lowpass'; padFilter.frequency.value = 1100; padFilter.Q.value = .4; padFilter.connect(music);
+    return true;
+  }
+  function out(gain, pan, dest) {
+    const g = ctx.createGain(); g.gain.value = gain;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(dest); } else g.connect(dest);
+    return g;
+  }
+  function chime(midi, t, gain, pan, dest) {
+    const f = m2f(midi), o = out(gain, pan, dest);
+    [[1, 1, 3.4], [2, .22, 1.8], [3.01, .07, 1]].forEach(([r, a, d]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f * r;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      osc.connect(g); g.connect(o); osc.start(t); osc.stop(t + d + .05);
+    });
+  }
+  function bowl(t, f, lvl) {
+    [[1, 1, 8], [2.32, .42, 5.5], [4.25, .2, 3.6], [6.63, .09, 2.4]].forEach(([r, a, d]) => {
+      [1, 1.0032].forEach((det, j) => {
+        const osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = f * r * det;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a * lvl * (j ? .55 : 1), t + .015);
+        g.gain.exponentialRampToValueAtTime(.0001, t + d);
+        osc.connect(g); g.connect(sfx); osc.start(t); osc.stop(t + d + .1);
+      });
+    });
+  }
+  const SCAPES = {
+    pond:   { oct: 0,   pad: .10, cut: 1150, chimes: [3, 8],  water: .22 },
+    rain:   { oct: 0,   pad: .07, cut: 900,  chimes: [10, 20], rain: .2 },
+    drone:  { oct: -12, pad: .15, cut: 650,  chimes: null,     water: .07 },
+    garden: { oct: 0,   pad: .06, cut: 800,  chimes: [6, 14],  crickets: true, water: .06 }
+  };
+  const CHORDS = [[50, 57, 62, 64, 66], [47, 54, 62, 64, 69], [43, 50, 59, 62, 66], [45, 52, 59, 61, 66]];
+  const BELLS = [74, 76, 78, 81, 83, 86, 88, 90];
+
+  function startMusic() {
+    if (!init()) return;
+    const my = ++gen; stopLayers();
+    const cfg = SCAPES[S.scape] || SCAPES.pond;
+    padFilter.frequency.setTargetAtTime(cfg.cut, ctx.currentTime, 1);
+    music.gain.cancelScheduledValues(ctx.currentTime);
+    music.gain.setTargetAtTime(S.musicVol / 100, ctx.currentTime, 1.2);
+
+    // Pads: overlapping chords, 16s each, a new one every 11s
+    let next = ctx.currentTime + .1, ci = 0;
+    const padTick = () => {
+      if (my !== gen) return;
+      while (next < ctx.currentTime + 2) {
+        const dur = 16, notes = CHORDS[ci++ % CHORDS.length].map((n) => n + cfg.oct);
+        notes.forEach((n) => {
+          const g = ctx.createGain(), lvl = cfg.pad / Math.sqrt(notes.length);
+          g.gain.setValueAtTime(0, next); g.gain.linearRampToValueAtTime(lvl, next + 5);
+          g.gain.setValueAtTime(lvl, next + dur - 6); g.gain.linearRampToValueAtTime(0, next + dur);
+          g.connect(padFilter);
+          [['sine', 1, .7], ['triangle', 1.0045, .22], ['sine', 2.002, .06]].forEach(([type, det, a]) => {
+            const o = ctx.createOscillator(), og = ctx.createGain();
+            o.type = type; o.frequency.value = m2f(n) * det; og.gain.value = a;
+            o.connect(og); og.connect(g); o.start(next); o.stop(next + dur + .1);
+          });
+        });
+        next += 11;
+      }
+    };
+    padTick(); const pi = setInterval(padTick, 500); stops.push(() => clearInterval(pi));
+
+    if (cfg.chimes) {
+      let to;
+      const ring = () => {
+        if (my !== gen) return;
+        const t = ctx.currentTime + .05, n = 1 + (Math.random() < .35 ? 1 : 0);
+        for (let k = 0; k < n; k++) chime(BELLS[Math.floor(Math.random() * BELLS.length)] + cfg.oct, t + k * rnd(.25, .6), rnd(.025, .05), rnd(-.7, .7), music);
+        const [a, b] = cfg.chimes; const fast = T.mode !== 'focus' ? .7 : 1;
+        to = setTimeout(ring, rnd(a, b) * 1000 * fast);
+      };
+      to = setTimeout(ring, 1800); stops.push(() => clearTimeout(to));
+    }
+    if (cfg.water) {
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer('brown'); src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 450; bp.Q.value = .7;
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = .06; lg.gain.value = 200; lfo.connect(lg); lg.connect(bp.frequency);
+      const g = ctx.createGain(); g.gain.value = cfg.water;
+      src.connect(bp); bp.connect(g); g.connect(music); src.start(); lfo.start();
+      stops.push(() => { try { src.stop(); lfo.stop(); } catch {} });
+    }
+    if (cfg.rain) {
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer('pink'); src.loop = true;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 600;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000;
+      const g = ctx.createGain(); g.gain.value = cfg.rain;
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(music); src.start();
+      const drops = setInterval(() => {
+        if (Math.random() < .55) {
+          const t = ctx.currentTime + Math.random() * .1, o = ctx.createOscillator(), dg = ctx.createGain(), po = out(1, rnd(-.8, .8), music);
+          o.frequency.setValueAtTime(rnd(1800, 3400), t); o.frequency.exponentialRampToValueAtTime(rnd(900, 1400), t + .05);
+          dg.gain.setValueAtTime(rnd(.006, .016), t); dg.gain.exponentialRampToValueAtTime(.0001, t + .06);
+          o.connect(dg); dg.connect(po); o.start(t); o.stop(t + .08);
+        }
+      }, 110);
+      stops.push(() => { clearInterval(drops); try { src.stop(); } catch {} });
+    }
+    if (cfg.crickets) {
+      let to;
+      const chirp = () => {
+        if (my !== gen) return;
+        const t = ctx.currentTime + .05, f = rnd(4200, 4800), pan = rnd(-.9, .9), reps = 2 + Math.floor(Math.random() * 3);
+        for (let r = 0; r < reps; r++) {
+          const o = ctx.createOscillator(), am = ctx.createGain(), po = out(rnd(.004, .009), pan, music);
+          o.frequency.value = f; am.gain.setValueAtTime(0, t + r * .32);
+          for (let p = 0; p < 4; p++) { const s = t + r * .32 + p * .035; am.gain.setValueAtTime(1, s); am.gain.setValueAtTime(0, s + .018); }
+          o.connect(am); am.connect(po); o.start(t + r * .32); o.stop(t + r * .32 + .2);
+        }
+        to = setTimeout(chirp, rnd(500, 2200));
+      };
+      to = setTimeout(chirp, 900); stops.push(() => clearTimeout(to));
+    }
+    musicOn = true;
+  }
+  function stopLayers() { stops.forEach((f) => f()); stops = []; }
+  function stopMusic() {
+    if (!ctx) return; musicOn = false; const my = ++gen;
+    music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0, ctx.currentTime, .6);
+    setTimeout(() => { if (my === gen) stopLayers(); }, 3000);
+  }
+  return {
+    init, startMusic, stopMusic,
+    get musicOn() { return musicOn; },
+    setMusicVol(v) { if (ctx && musicOn) music.gain.setTargetAtTime(v, ctx.currentTime, .2); },
+    setBellVol(v) { if (ctx) sfx.gain.setTargetAtTime(v, ctx.currentTime, .1); },
+    plip(xFrac) {
+      if (!init()) return;
+      const scale = [62, 64, 66, 69, 71, 74, 76, 78, 81, 83];
+      const idx = Math.max(0, Math.min(scale.length - 1, Math.floor(xFrac * scale.length)));
+      const t = ctx.currentTime + .01;
+      chime(scale[idx], t, .09, (xFrac * 2 - 1) * .7, sfx);
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(240, t + .14);
+      g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
+      o.connect(g); g.connect(sfx); o.start(t); o.stop(t + .2);
+    },
+    bell(kind) {
+      if (!init()) return; const t = ctx.currentTime + .05;
+      if (kind === 'rest') { bowl(t, m2f(62), .22); bowl(t + 2.6, m2f(69), .17); bowl(t + 5.2, m2f(62), .2); }
+      else { bowl(t, m2f(69), .2); bowl(t + 2.2, m2f(74), .16); }
+    }
+  };
+})();
+
+/* ---------- Pond rendering ---------- */
+const cv = $('#pond'), cx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, C = {};
+const readColors = () => {
+  const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
+  C = { top: v('--water-top'), bottom: v('--water-bottom'), caustic: v('--caustic'), moon: v('--moon'), pad: v('--pad'), padHi: v('--pad-hi'),
+        vein: v('--vein'), petal: v('--petal'), shadow: v('--shadow'), ripple: v('--ripple'), light: cs.colorScheme === 'light' || v('color-scheme') === 'light' };
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readColors);
+new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+let seed = 7; const srand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const R = (a, b) => a + Math.random() * (b - a);
+const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+
+let pads = [], koi = [], ripples = [], food = [], petals = [], blobs = [];
+let moon = { x: 0, y: 0, r: 120 };
+let gatherUntil = 0;
+
+const KOI_TYPES = [
+  { base: '#f3ece1', spots: ['#e2582f', '#ec7a3c'] },             // kohaku
+  { base: '#ecae48', spots: ['#f5cf7a'] },                        // ogon
+  { base: '#f1e9dd', spots: ['#d8442a', '#1e2427'] },             // showa
+  { base: '#f4efe6', spots: [], crown: '#d63b2a' },               // tancho
+  { base: '#ea7a3a', spots: ['#f3ece1'] },                        // orange & white
+  { base: '#e9e4da', spots: ['#2a3236', '#e6913e'] }              // sanke
+];
+
+function makeKoi(i) {
+  const scale = Math.min(1.25, Math.max(.75, Math.min(W, H) / 800));
+  const len = R(70, 105) * scale, N = 16, a = R(0, Math.PI * 2);
+  const x = R(W * .15, W * .85), y = R(H * .15, H * .85);
+  const type = KOI_TYPES[i % KOI_TYPES.length];
+  const marks = [];
+  type.spots.forEach((col) => { const n = 2 + Math.floor(Math.random() * 3); for (let k = 0; k < n; k++) marks.push({ col, at: R(.08, .75), off: R(-.6, .6), r: R(.08, .16) }); });
+  return { x, y, a, len, N, seg: len / N, speed: R(18, 28), base: R(16, 26), wander: 0, phase: R(0, 6), type, marks, gatherA: (i / 6) * Math.PI * 2,
+           pts: Array.from({ length: N }, (_, k) => ({ x: x - Math.cos(a) * k * (len / N), y: y - Math.sin(a) * k * (len / N) })) };
+}
+
+function layout() {
+  DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const t = $('#time').getBoundingClientRect();
+  moon.x = t.left + t.width / 2; moon.y = t.top + t.height / 2;
+  moon.r = Math.max(105, Math.min(210, Math.min(W, H) * .24));
+  // lily pads around the edges, kept clear of the timer
+  seed = 11; pads = [];
+  const target = W < 600 ? 6 : 9;
+  for (let tries = 0; pads.length < target && tries < 400; tries++) {
+    const r = (W < 600 ? 34 : 44) + srand() * (W < 600 ? 26 : 44);
+    const x = srand() * W, y = srand() * H;
+    const dx = (x - moon.x) / (W * .3 + r), dy = (y - moon.y) / (H * .34 + r);
+    if (dx * dx + dy * dy < 1) continue;
+    if (y < 70 || y > H - 50 && x > W * .3 && x < W * .7) continue;
+    if (pads.some((p) => Math.hypot(p.x - x, p.y - y) < p.r + r + 14)) continue;
+    pads.push({ x, y, r, rot: srand() * Math.PI * 2, flower: srand() < .35, ph: srand() * 6 });
+  }
+  if (!koi.length) koi = Array.from({ length: W < 600 ? 5 : 7 }, (_, i) => makeKoi(i));
+  if (!petals.length) petals = Array.from({ length: 7 }, () => ({ x: R(0, W), y: R(0, H), a: R(0, 6), s: R(.6, 1.1), vx: R(-4, 4), vy: R(-3, 3) }));
+  if (!blobs.length) blobs = Array.from({ length: 4 }, (_, i) => ({ ph: i * 1.7, r: R(.35, .55) }));
+}
+
+function addRipple(x, y, strength = 1) { ripples.push({ x, y, t: 0, life: 2.6 + strength, s: strength }); if (ripples.length > 40) ripples.shift(); }
+
+function updateKoi(k, dt, now) {
+  const margin = 90;
+  k.wander += (Math.random() - .5) * 2.2 * dt;
+  k.wander *= .985;
+  let desired = k.a + k.wander * .9;
+  let targetSpeed = k.base * (T.mode === 'focus' ? .85 : 1.15) * (reduceMotion ? .55 : 1);
+  // food
+  let best = null, bd = 480;
+  for (const f of food) { const d = Math.hypot(f.x - k.x, f.y - k.y); if (d < bd) { bd = d; best = f; } }
+  if (best) {
+    desired = Math.atan2(best.y - k.y, best.x - k.x); targetSpeed *= 2.1;
+    if (bd < k.len * .18) { best.eaten = true; addRipple(best.x, best.y, .35); }
+  } else if (now < gatherUntil) {
+    const gx = moon.x + Math.cos(k.gatherA + now * .00015) * moon.r * 1.35, gy = moon.y + Math.sin(k.gatherA + now * .00015) * moon.r * 1.15;
+    desired = Math.atan2(gy - k.y, gx - k.x); targetSpeed *= 1.6;
+  }
+  // edges
+  if (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin) {
+    const toC = Math.atan2(H / 2 - k.y, W / 2 - k.x);
+    desired = k.a + angDiff(k.a, toC) * .9;
+  }
+  // keep the moon (and the timer on it) clear
+  const md = Math.hypot(k.x - moon.x, k.y - moon.y), keep = moon.r * 1.08;
+  if (md < keep && !(best && Math.hypot(best.x - moon.x, best.y - moon.y) < keep)) {
+    const away = Math.atan2(k.y - moon.y, k.x - moon.x);
+    desired = k.a + angDiff(k.a, away) * (1 - md / keep) * 1.6 + angDiff(k.a, desired) * (md / keep) * .3;
+  }
+  // gentle separation
+  for (const o of koi) if (o !== k) { const d = Math.hypot(o.x - k.x, o.y - k.y); if (d < k.len * .7) desired += angDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.a) * -.04; }
+  const maxTurn = 1.5 * dt * (best ? 1.8 : 1);
+  k.a += Math.max(-maxTurn, Math.min(maxTurn, angDiff(k.a, desired) * Math.min(1, dt * 3)));
+  k.speed += (targetSpeed - k.speed) * Math.min(1, dt * 1.2);
+  k.x += Math.cos(k.a) * k.speed * dt; k.y += Math.sin(k.a) * k.speed * dt;
+  k.phase += k.speed * dt * .16;
+  const p = k.pts; p[0].x = k.x; p[0].y = k.y;
+  for (let i = 1; i < p.length; i++) {
+    const dx = p[i - 1].x - p[i].x, dy = p[i - 1].y - p[i].y, d = Math.hypot(dx, dy) || 1;
+    p[i].x = p[i - 1].x - dx / d * k.seg; p[i].y = p[i - 1].y - dy / d * k.seg;
+  }
+}
+
+function koiOutline(k) {
+  const p = k.pts, N = p.length, L = [], Rr = [], mid = [];
+  for (let i = 0; i < N; i++) {
+    const a = i ? p[i - 1] : { x: p[0].x + Math.cos(k.a), y: p[0].y + Math.sin(k.a) };
+    const th = Math.atan2(a.y - p[i].y, a.x - p[i].x);
+    const t = i / (N - 1);
+    const wave = Math.sin(k.phase - i * .45) * k.len * .035 * Math.pow(t, 1.3);
+    const nx = -Math.sin(th), ny = Math.cos(th);
+    const px = p[i].x + nx * wave, py = p[i].y + ny * wave;
+    const prof = t < .22 ? .78 + .22 * Math.sin(t / .22 * Math.PI / 2) : 1 - Math.pow((t - .22) / .78, 1.25) * .9;
+    const w = k.len * .115 * prof;
+    mid.push({ x: px, y: py, th, w, nx, ny });
+    L.push({ x: px + nx * w, y: py + ny * w }); Rr.push({ x: px - nx * w, y: py - ny * w });
+  }
+  return { L, Rr, mid };
+}
+function tracePath(o) {
+  const { L, Rr, mid } = o;
+  cx.beginPath();
+  cx.moveTo(L[0].x, L[0].y);
+  for (let i = 1; i < L.length - 1; i++) cx.quadraticCurveTo(L[i].x, L[i].y, (L[i].x + L[i + 1].x) / 2, (L[i].y + L[i + 1].y) / 2);
+  cx.lineTo(Rr[Rr.length - 1].x, Rr[Rr.length - 1].y);
+  for (let i = Rr.length - 2; i > 0; i--) cx.quadraticCurveTo(Rr[i].x, Rr[i].y, (Rr[i].x + Rr[i - 1].x) / 2, (Rr[i].y + Rr[i - 1].y) / 2);
+  cx.lineTo(Rr[0].x, Rr[0].y);
+  const h = mid[0]; cx.arc(h.x, h.y, h.w, h.th - Math.PI / 2, h.th + Math.PI / 2, false);
+  cx.closePath();
+}
+function drawKoi(k) {
+  const o = koiOutline(k), m = o.mid, N = m.length;
+  const sh = k.len * .09;
+  // shadow on the pond floor
+  cx.save(); cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill();
+  cx.restore();
+  // fins
+  const finCol = k.type.base;
+  cx.fillStyle = finCol; cx.globalAlpha = .55;
+  const f = m[3], flap = Math.sin(k.phase * 1.3) * .25;
+  [1, -1].forEach((s) => {
+    cx.beginPath();
+    cx.ellipse(f.x + f.nx * s * f.w * 1.25, f.y + f.ny * s * f.w * 1.25, k.len * .12, k.len * .045, f.th + Math.PI + s * (1.0 + flap), 0, Math.PI * 2);
+    cx.fill();
+  });
+  const tl = m[N - 1], tb = m[N - 3], tw = Math.sin(k.phase - N * .45) * .5;
+  const ta = Math.atan2(tl.y - tb.y, tl.x - tb.x);
+  cx.beginPath(); cx.moveTo(tb.x, tb.y);
+  const tlen = k.len * .26;
+  cx.quadraticCurveTo(tl.x + Math.cos(ta + .9 + tw) * tlen * .6, tl.y + Math.sin(ta + .9 + tw) * tlen * .6, tl.x + Math.cos(ta + .5 + tw) * tlen, tl.y + Math.sin(ta + .5 + tw) * tlen);
+  cx.quadraticCurveTo(tl.x + Math.cos(ta + tw) * tlen * .55, tl.y + Math.sin(ta + tw) * tlen * .55, tl.x + Math.cos(ta - .5 + tw) * tlen, tl.y + Math.sin(ta - .5 + tw) * tlen);
+  cx.quadraticCurveTo(tl.x + Math.cos(ta - .9 + tw) * tlen * .6, tl.y + Math.sin(ta - .9 + tw) * tlen * .6, tb.x, tb.y);
+  cx.fill();
+  cx.globalAlpha = 1;
+  // body
+  cx.save(); tracePath(o); cx.fillStyle = k.type.base; cx.fill(); cx.clip();
+  for (const mk of k.marks) {
+    const i = Math.floor(mk.at * (N - 1)), pt = m[i];
+    cx.fillStyle = mk.col; cx.beginPath();
+    cx.ellipse(pt.x + pt.nx * pt.w * mk.off, pt.y + pt.ny * pt.w * mk.off, k.len * mk.r, k.len * mk.r * .62, pt.th, 0, Math.PI * 2); cx.fill();
+  }
+  if (k.type.crown) { const h = m[1]; cx.fillStyle = k.type.crown; cx.beginPath(); cx.arc(h.x, h.y, h.w * .5, 0, Math.PI * 2); cx.fill(); }
+  // dorsal sheen
+  cx.strokeStyle = 'rgba(255,255,255,.22)'; cx.lineWidth = m[4].w * .35; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(m[1].x, m[1].y); for (let i = 2; i < N * .7; i++) cx.lineTo(m[i].x, m[i].y); cx.stroke();
+  cx.restore();
+  // eyes
+  const h = m[0]; cx.fillStyle = 'rgba(20,24,26,.75)';
+  [1, -1].forEach((s) => { cx.beginPath(); cx.arc(h.x + Math.cos(h.th) * h.w * .35 + h.nx * s * h.w * .62, h.y + Math.sin(h.th) * h.w * .35 + h.ny * s * h.w * .62, Math.max(1.2, h.w * .12), 0, Math.PI * 2); cx.fill(); });
+}
+
+function drawPad(p, now) {
+  const sway = Math.sin(now * .0004 + p.ph) * .04, r = p.r;
+  cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot + sway);
+  const notch = .32;
+  cx.fillStyle = C.shadow; cx.beginPath(); cx.moveTo(r * .1, r * .16); cx.arc(r * .1, r * .16, r, notch, Math.PI * 2 - notch); cx.closePath(); cx.fill();
+  const g = cx.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r);
+  g.addColorStop(0, C.padHi); g.addColorStop(1, C.pad);
+  cx.fillStyle = g; cx.beginPath(); cx.moveTo(0, 0); cx.arc(0, 0, r, notch, Math.PI * 2 - notch); cx.closePath(); cx.fill();
+  cx.strokeStyle = C.vein; cx.lineWidth = 1;
+  for (let i = 1; i < 9; i++) { const a = notch + (Math.PI * 2 - notch * 2) * i / 9; cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(Math.cos(a) * r * .92, Math.sin(a) * r * .92); cx.stroke(); }
+  if (p.flower) {
+    const fr = r * .42, bloom = .85 + Math.sin(now * .0006 + p.ph) * .05;
+    cx.translate(-r * .25, -r * .1);
+    for (let ring = 0; ring < 2; ring++) {
+      const n = ring ? 6 : 8, rr = fr * (ring ? .62 : 1) * bloom;
+      for (let i = 0; i < n; i++) {
+        const a = i / n * Math.PI * 2 + ring * .4;
+        cx.fillStyle = ring ? 'rgba(255,240,244,.95)' : C.petal;
+        cx.beginPath(); cx.ellipse(Math.cos(a) * rr * .5, Math.sin(a) * rr * .5, rr * .55, rr * .22, a, 0, Math.PI * 2); cx.fill();
+      }
+    }
+    cx.fillStyle = '#f3cf5e'; cx.beginPath(); cx.arc(0, 0, fr * .16, 0, Math.PI * 2); cx.fill();
+  }
+  cx.restore();
+}
+
+let breath = 0;
+function drawMoon(now) {
+  const { x, y, r } = moon;
+  const rest = T.mode !== 'focus';
+  let p = progress(); if (rest) p = 1 - p;
+  p = Math.max(0, Math.min(1, p));
+  const glowA = C.light ? .32 : .16;
+  const glow = cx.createRadialGradient(x, y, r * .2, x, y, r * 2.1);
+  glow.addColorStop(0, `rgba(${C.moon},${glowA * (.45 + p * .55)})`); glow.addColorStop(1, `rgba(${C.moon},0)`);
+  cx.fillStyle = glow; cx.fillRect(x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  // the unlit disc
+  cx.strokeStyle = `rgba(${C.moon},${C.light ? .5 : .28})`; cx.lineWidth = 1;
+  cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.stroke();
+  cx.fillStyle = `rgba(${C.moon},${C.light ? .1 : .04})`; cx.fill();
+  // the lit phase, with a slow ripple wobble
+  const wob = Math.sin(now * .0011) * .012;
+  cx.save(); cx.translate(x, y); cx.scale(1 + wob, 1 - wob);
+  cx.beginPath();
+  if (p > .995) cx.arc(0, 0, r, 0, Math.PI * 2);
+  else if (p > .005) {
+    cx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2);
+    const rx = r * Math.abs(1 - 2 * p);
+    if (p < .5) cx.ellipse(0, 0, rx, r, 0, Math.PI / 2, -Math.PI / 2, true);
+    else cx.ellipse(0, 0, rx, r, 0, Math.PI / 2, Math.PI * 1.5, false);
+  }
+  cx.closePath();
+  cx.fillStyle = `rgba(${C.moon},${C.light ? .38 : .17})`; cx.fill();
+  cx.restore();
+  // reflection streaks
+  cx.strokeStyle = `rgba(${C.moon},${C.light ? .35 : .18})`; cx.lineCap = 'round';
+  for (let i = 0; i < 5; i++) {
+    const yy = y + r * (1.18 + i * .16), half = r * (.55 - i * .09) * (.6 + p * .4), shift = Math.sin(now * .0009 + i * 1.3) * r * .08;
+    cx.lineWidth = 2.2 - i * .3; cx.beginPath(); cx.moveTo(x - half + shift, yy); cx.lineTo(x + half + shift, yy); cx.stroke();
+  }
+  // breathing ring during rests
+  if (rest) {
+    const rr = r * (1.06 + breath * .22);
+    cx.strokeStyle = `rgba(${C.moon},${(C.light ? .7 : .45) * (.4 + breath * .6)})`; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.arc(x, y, rr, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = `rgba(${C.moon},${(C.light ? .35 : .2) * breath})`; cx.lineWidth = 8;
+    cx.beginPath(); cx.arc(x, y, rr + 6, 0, Math.PI * 2); cx.stroke();
+  }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  // water
+  const g = cx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.top); g.addColorStop(1, C.bottom);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  for (const b of blobs) {
+    const bx = W * (.5 + Math.sin(now * .00005 + b.ph) * .45), by = H * (.5 + Math.cos(now * .00004 + b.ph * 1.3) * .45), br = Math.max(W, H) * b.r;
+    const cg = cx.createRadialGradient(bx, by, 0, bx, by, br);
+    cg.addColorStop(0, `rgba(${C.caustic},${C.light ? .22 : .05})`); cg.addColorStop(1, `rgba(${C.caustic},0)`);
+    cx.fillStyle = cg; cx.fillRect(bx - br, by - br, br * 2, br * 2);
+  }
+  drawMoon(now);
+  // food pellets
+  food = food.filter((f) => !f.eaten && (f.t += dt) < 9);
+  for (const f of food) { cx.fillStyle = `rgba(214,170,110,${Math.min(1, (9 - f.t) / 2) * .9})`; cx.beginPath(); cx.arc(f.x, f.y, 2.6, 0, Math.PI * 2); cx.fill(); }
+  for (const k of koi) { updateKoi(k, dt, Date.now()); drawKoi(k); }
+  // ripples
+  ripples = ripples.filter((r) => (r.t += dt) < r.life);
+  for (const r of ripples) {
+    const k = r.t / r.life;
+    for (let j = 0; j < 3; j++) {
+      const rad = (r.t * 46 - j * 14) * (0.7 + r.s * .4); if (rad <= 0) continue;
+      cx.strokeStyle = `rgba(${C.ripple},${(1 - k) * (.5 - j * .13) * Math.min(1, r.s + .3)})`; cx.lineWidth = 1.4 - j * .3;
+      cx.beginPath(); cx.ellipse(r.x, r.y, rad, rad * .82, 0, 0, Math.PI * 2); cx.stroke();
+    }
+  }
+  for (const p of pads) drawPad(p, now);
+  // drifting petals
+  for (const p of petals) {
+    if (!reduceMotion) { p.x += p.vx * dt; p.y += p.vy * dt; p.a += dt * .1; }
+    if (p.x < -20) p.x = W + 20; if (p.x > W + 20) p.x = -20; if (p.y < -20) p.y = H + 20; if (p.y > H + 20) p.y = -20;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a); cx.fillStyle = C.petal; cx.globalAlpha = .8;
+    cx.beginPath(); cx.ellipse(0, 0, 7 * p.s, 3.4 * p.s, 0, 0, Math.PI * 2); cx.fill(); cx.restore();
+  }
+  tickUI(now);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Pond interaction ---------- */
+let dragging = false, lastStir = 0;
+cv.addEventListener('pointerdown', (e) => {
+  dragging = true; cv.setPointerCapture?.(e.pointerId);
+  addRipple(e.clientX, e.clientY, 1);
+  for (let i = 0; i < 3; i++) food.push({ x: e.clientX + R(-14, 14), y: e.clientY + R(-14, 14), t: 0 });
+  AE.plip(e.clientX / W);
+});
+cv.addEventListener('pointermove', (e) => {
+  if (!dragging) return; const n = performance.now();
+  if (n - lastStir > 70) { lastStir = n; addRipple(e.clientX, e.clientY, .4); }
+});
+['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => dragging = false));
+
+/* ---------- Timer & UI ---------- */
+const el = {
+  time: $('#time'), status: $('#status'), cue: $('#cue'), suggest: $('#suggest'), start: $('#startBtn'), startLbl: $('#startLbl'), startIcon: $('#startIcon'),
+  stones: $('#stones'), roundLbl: $('#roundLbl'), today: $('#today'), toast: $('#toast'), music: $('#musicBtn'), musicLbl: $('#musicLbl')
+};
+const PLAY = '<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>';
+const PAUSE = '<rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/>';
+const REST_TIPS = [
+  'Stand up and roll your shoulders back slowly, five times.',
+  'Look at something far away, out a window if you can, for twenty seconds.',
+  'Unclench your jaw. Let your shoulders drop away from your ears.',
+  'Refill your water glass and drink half of it.',
+  'Reach both arms overhead and hold for three slow breaths.',
+  'Close your eyes and listen to the water for a minute.',
+  'Walk to another room and back. The koi will keep watch.',
+  'Open and close your hands ten times. Stretch your fingers wide.'
+];
+const LONG_TIPS = [
+  'Step outside for a few minutes of daylight and fresh air.',
+  'Have a proper snack, away from the screen.',
+  'Take a slow walk. Leave your phone behind if you can.',
+  'Lie down, close your eyes, and let the music carry the time.'
+];
+let tipIdx = Math.floor(Math.random() * REST_TIPS.length);
+const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+const clock = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+let lastShown = '', lastCue = '';
+function tickUI(now) {
+  if (T.running) {
+    T.remaining = Math.max(0, T.endAt - Date.now());
+    if (T.remaining <= 0) complete();
+  }
+  const txt = fmt(T.remaining);
+  if (txt !== lastShown) {
+    lastShown = txt; el.time.textContent = txt;
+    if (T.running) document.title = `${txt} · ${MODES[T.mode].label} · Stillwater`;
+  }
+  // breathing: 4s in, 2s hold, 6s out
+  if (T.mode !== 'focus') {
+    const c = (now / 1000) % 12;
+    let label;
+    if (c < 4) { breath = .5 - Math.cos(c / 4 * Math.PI) / 2; label = 'Breathe in'; }
+    else if (c < 6) { breath = 1; label = 'Hold'; }
+    else { breath = .5 + Math.cos((c - 6) / 6 * Math.PI) / 2; label = 'Breathe out'; }
+    if (label !== lastCue) { lastCue = label; el.cue.textContent = label; }
+  } else if (lastCue) { lastCue = ''; el.cue.textContent = ''; breath = 0; }
+}
+
+function renderStatic() {
+  document.querySelectorAll('.modes button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === T.mode)));
+  el.startLbl.textContent = T.running ? 'Pause' : (T.remaining < total() ? 'Resume' : 'Start');
+  el.startIcon.innerHTML = T.running ? PAUSE : PLAY;
+  const mins = MODES[T.mode].len();
+  if (T.running) el.status.textContent = T.mode === 'focus' ? `Focus until ${clock(T.endAt)}` : `Resting until ${clock(T.endAt)}`;
+  else if (T.remaining < total()) el.status.textContent = 'Paused. The pond will wait.';
+  else el.status.textContent = T.mode === 'focus' ? `${mins} minutes of focus. Press Start when you're ready.` : `${mins} minutes to rest. Press Start to begin.`;
+  if (T.mode === 'focus') el.suggest.textContent = T.running ? 'One task at a time. The moon fills as you work.' : 'Tap the water to feed the koi.';
+  else el.suggest.textContent = T.mode === 'long' ? LONG_TIPS[tipIdx % LONG_TIPS.length] : REST_TIPS[tipIdx % REST_TIPS.length];
+  const inCycle = T.cycle % S.rounds;
+  el.stones.innerHTML = Array.from({ length: S.rounds }, (_, i) => `<i class="${i < inCycle || (T.cycle > 0 && inCycle === 0 && T.mode === 'long') ? 'done' : ''}"></i>`).join('');
+  const roundNo = T.mode === 'focus' ? inCycle + 1 : (inCycle === 0 ? (T.cycle ? S.rounds : 1) : inCycle);
+  el.roundLbl.textContent = `Round ${roundNo} of ${S.rounds}`;
+  el.today.textContent = `${todayData.count} focus round${todayData.count === 1 ? '' : 's'} today`;
+}
+
+let toastTimer;
+function toast(msg) { el.toast.textContent = msg; el.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.toast.classList.remove('show'), 9000); }
+
+let wakeLock = null;
+async function lockScreen() { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch { wakeLock = null; } }
+function releaseScreen() { try { wakeLock?.release(); } catch {} wakeLock = null; }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && T.running) lockScreen(); });
+
+function start() {
+  AE.init();
+  if (!AE.musicOn && S.scapeOn) AE.startMusic();
+  T.running = true; T.endAt = Date.now() + T.remaining; lockScreen(); renderStatic(); renderMusic();
+}
+function pause() { T.running = false; T.remaining = Math.max(0, T.endAt - Date.now()); releaseScreen(); renderStatic(); document.title = `Paused · ${fmt(T.remaining)} · Stillwater`; }
+function setMode(m, keepRunning = false) {
+  T.mode = m; T.remaining = total(); T.running = false; lastShown = '';
+  if (m !== 'focus') tipIdx++;
+  renderStatic(); if (keepRunning) start();
+}
+function next(counted) {
+  let m;
+  if (T.mode === 'focus') {
+    if (counted) { T.cycle++; todayData.count++; store.set('stillwater.today', todayData); }
+    m = counted && T.cycle % S.rounds === 0 ? 'long' : 'short';
+  } else m = 'focus';
+  return m;
+}
+function notify(title, body) {
+  try { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, silent: true }); } catch {}
+}
+function complete() {
+  const was = T.mode; const m = next(true);
+  releaseScreen();
+  gatherUntil = Date.now() + 14000;
+  addRipple(moon.x, moon.y, 1.6);
+  if (was === 'focus') {
+    AE.bell('rest');
+    const len = MODES[m].len();
+    toast(m === 'long' ? `That's ${S.rounds} rounds. Take a long rest: ${len} minutes.` : `Focus round complete. Rest for ${len} minute${len === 1 ? '' : 's'}.`);
+    notify('Time to rest', `Step away for ${len} minutes. The koi have gathered.`);
+    setMode(m, S.autoRest);
+  } else {
+    AE.bell('focus');
+    toast('Rest is over. Start focusing when you feel ready.');
+    notify('Rest is over', 'Come back when you feel ready.');
+    setMode(m, S.autoFocus);
+  }
+  if (!T.running) document.title = was === 'focus' ? 'Time to rest · Stillwater' : 'Rest is over · Stillwater';
+}
+
+el.start.addEventListener('click', () => (T.running ? pause() : start()));
+$('#resetBtn').addEventListener('click', () => { const r = T.running; T.remaining = total(); if (r) { T.endAt = Date.now() + T.remaining; } lastShown = ''; renderStatic(); });
+$('#skipBtn').addEventListener('click', () => { const m = next(false); setMode(m); toast(m === 'focus' ? 'Skipped the rest.' : 'Skipped ahead to a rest.'); });
+document.querySelectorAll('.modes button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.mode !== T.mode) setMode(b.dataset.mode); }));
+
+/* Music toggle */
+function renderMusic() { const on = AE.musicOn; el.music.setAttribute('aria-pressed', String(on)); el.musicLbl.textContent = on ? 'Music on' : 'Music off'; }
+function toggleMusic() { if (AE.musicOn) { AE.stopMusic(); S.scapeOn = false; } else { AE.startMusic(); S.scapeOn = true; } saveSettings(); renderMusic(); }
+el.music.addEventListener('click', toggleMusic);
+if (S.scapeOn === undefined) S.scapeOn = true;
+
+/* Settings sheet */
+const sheet = $('#sheet'), scrim = $('#scrim'), setBtn = $('#settingsBtn');
+function openSheet(o) {
+  sheet.classList.toggle('open', o); scrim.classList.toggle('open', o);
+  sheet.setAttribute('aria-hidden', String(!o)); setBtn.setAttribute('aria-expanded', String(o));
+  sheet.inert = !o;
+  if (o) setTimeout(() => $('#focusLen').focus(), 200); else setBtn.focus();
+}
+sheet.inert = true;
+setBtn.addEventListener('click', () => openSheet(true));
+$('#closeBtn').addEventListener('click', () => openSheet(false));
+scrim.addEventListener('click', () => openSheet(false));
+
+const fill = (inp) => inp.style.setProperty('--p', `${(inp.value - inp.min) / (inp.max - inp.min) * 100}%`);
+const ranges = [
+  ['focusLen', 'focus', 'focusOut', (v) => `${v} min`],
+  ['shortLen', 'short', 'shortOut', (v) => `${v} min`],
+  ['longLen', 'long', 'longOut', (v) => `${v} min`],
+  ['roundsLen', 'rounds', 'roundsOut', (v) => `${v} rounds`],
+  ['musicVol', 'musicVol', 'musicVolOut', (v) => `${v}%`],
+  ['bellVol', 'bellVol', 'bellVolOut', (v) => `${v}%`]
+];
+ranges.forEach(([id, key, outId, f]) => {
+  const inp = $('#' + id), out = $('#' + outId);
+  inp.value = S[key]; out.textContent = f(S[key]); fill(inp);
+  inp.addEventListener('input', () => {
+    const v = +inp.value; S[key] = v; out.textContent = f(v); fill(inp); saveSettings();
+    if (key === 'musicVol') AE.setMusicVol(v / 100);
+    if (key === 'bellVol') AE.setBellVol(v / 100);
+    if (['focus', 'short', 'long'].includes(key) && key === T.mode && !T.running) { T.remaining = total(); lastShown = ''; }
+    renderStatic();
+  });
+});
+['autoRest', 'autoFocus'].forEach((k) => { const c = $('#' + k); c.checked = S[k]; c.addEventListener('change', () => { S[k] = c.checked; saveSettings(); }); });
+
+function renderScapes() { document.querySelectorAll('#scapes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scape === S.scape))); }
+document.querySelectorAll('#scapes button').forEach((b) => b.addEventListener('click', () => {
+  S.scape = b.dataset.scape; S.scapeOn = true; saveSettings(); renderScapes(); AE.startMusic(); renderMusic();
+}));
+$('#testBell').addEventListener('click', () => AE.bell('rest'));
+const nBtn = $('#notifyBtn'), nNote = $('#notifyNote');
+function renderNotify() {
+  if (!('Notification' in window)) { nBtn.hidden = true; return; }
+  if (Notification.permission === 'granted') { nBtn.textContent = 'Desktop alerts on'; nBtn.disabled = true; }
+  else if (Notification.permission === 'denied') { nBtn.hidden = true; nNote.textContent = 'Desktop alerts are blocked here. The bell rings and the tab title changes when a session ends.'; }
+}
+nBtn.addEventListener('click', async () => {
+  try { const r = await Notification.requestPermission(); if (r !== 'granted') nNote.textContent = 'Desktop alerts aren\'t available on this page. The bell and the tab title will still tell you when a session ends.'; }
+  catch { nNote.textContent = 'Desktop alerts aren\'t available on this page. The bell and the tab title will still tell you when a session ends.'; }
+  renderNotify();
+});
+
+/* Keyboard */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sheet.classList.contains('open')) { openSheet(false); return; }
+  if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ' && !e.target.closest('button')) { e.preventDefault(); el.start.click(); }
+  else if (k === 's') $('#skipBtn').click();
+  else if (k === 'r') $('#resetBtn').click();
+  else if (k === 'm') toggleMusic();
+});
+
+/* Background check so the bell still rings when the tab is hidden */
+setInterval(() => { if (T.running && Date.now() >= T.endAt) tickUI(performance.now()); }, 500);
+
+addEventListener('resize', () => { layout(); });
+readColors(); layout(); document.fonts?.ready.then(layout); renderStatic(); renderScapes(); renderMusic(); renderNotify();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
