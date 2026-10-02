@@ -134,7 +134,7 @@ button, input, select { font: inherit; color: inherit; }
 .primary svg { width: 20px; height: 20px; }
 
 .toast {
-  margin: 0; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line);
+  margin: 0; padding: 8px 16px; border-radius: 20px; max-width: min(92vw, 34rem); background: var(--surface); border: 1px solid var(--line);
   font-size: .9rem; opacity: 0; transform: translateY(6px); transition: opacity .7s, transform .7s cubic-bezier(.16,1,.3,1);
 }
 .toast.show { opacity: 1; transform: none; }
@@ -147,6 +147,7 @@ button, input, select { font: inherit; color: inherit; }
 .stones i.done { background: var(--accent); border-color: var(--accent); }
 .hint { text-align: center; flex: 1 1 220px; }
 .today { text-align: right; font-variant-numeric: tabular-nums; }
+.today span { display: block; }
 
 /* Settings sheet */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: opacity .5s; }
@@ -257,7 +258,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   <footer class="bottom">
     <div class="rounds"><div class="stones" id="stones" aria-hidden="true"></div><span id="roundLbl">Round 1 of 4</span></div>
     <div class="hint">Tap to feed the koi · drag to stir the water</div>
-    <div class="today" id="today">0 focus rounds today</div>
+    <div class="today"><span id="today">0 focus rounds today</span><span id="pondInfo"></span></div>
   </footer>
 </div>
 
@@ -508,6 +509,8 @@ const AE = (() => {
       g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
       o.connect(g); g.connect(sfx); o.start(t); o.stop(t + .2);
     },
+    grow() { if (!init()) return; const t = ctx.currentTime + .01; chime(81, t, .05, 0, sfx); chime(86, t + .12, .04, 0, sfx); },
+    reveal() { if (!init()) return; const t = ctx.currentTime + .01; [74, 78, 81, 86, 90, 93].forEach((n, i) => chime(n, t + i * .14, .06, i / 5 * 1.2 - .6, sfx)); },
     bell(kind) {
       if (!init()) return; const t = ctx.currentTime + .05;
       if (kind === 'rest') { bowl(t, m2f(62), .22); bowl(t + 2.6, m2f(69), .17); bowl(t + 5.2, m2f(62), .2); }
@@ -549,10 +552,130 @@ function makeKoi(i) {
   const len = R(70, 105) * scale, N = 16, a = R(0, Math.PI * 2);
   const x = R(W * .15, W * .85), y = R(H * .15, H * .85);
   const type = KOI_TYPES[i % KOI_TYPES.length];
-  const marks = [];
-  type.spots.forEach((col) => { const n = 2 + Math.floor(Math.random() * 3); for (let k = 0; k < n; k++) marks.push({ col, at: R(.08, .75), off: R(-.6, .6), r: R(.08, .16) }); });
+  const marks = buildMarks(type);
   return { x, y, a, len, N, seg: len / N, speed: R(18, 28), base: R(16, 26), wander: 0, phase: R(0, 6), type, marks, gatherA: (i / 6) * Math.PI * 2,
            pts: Array.from({ length: N }, (_, k) => ({ x: x - Math.cos(a) * k * (len / N), y: y - Math.sin(a) * k * (len / N) })) };
+}
+
+function buildMarks(type) {
+  const marks = [];
+  type.spots.forEach((col) => { const n = 2 + Math.floor(Math.random() * 3); for (let k = 0; k < n; k++) marks.push({ col, at: R(.08, .75), off: R(-.6, .6), r: R(.08, .16) }); });
+  return marks;
+}
+
+/* ---------- Collection fish: hatch from finished sessions, grow by feeding ---------- */
+const POND_MS = 8 * 3600 * 1000, STAGES = 5, STAGE_FRAC = (s) => .42 + .116 * s;
+const needFor = (stage) => [8, 16, 24, 32, 40][stage];       // pellets to leave each stage: 120 total = 40 taps of 3 pellets
+const BATCH = { common: 25, rare: 5, ultra: 3 };              // fish hatched per finished focus / short rest / long rest
+const RARITY = {
+  common: { label: 'common', len: [58, 72] },
+  rare:   { label: 'rare', len: [64, 80] },
+  ultra:  { label: 'ultra rare', len: [72, 90] }
+};
+// Fry look drab on purpose: the true colours are the surprise at maturity. Rare fry carry a faint hint of glow.
+const JUVENILE = {
+  common: { base: '#c9c2b0', spots: [] },
+  rare:   { base: '#aebdbf', spots: [], glow: '150,220,255', hint: true },
+  ultra:  { base: '#c9bfd6', spots: [], glow: '255,214,120' }   // full glow from birth so ultra rare fry stand out
+};
+const MATURE = {
+  common: [
+    { name: 'Kujaku', base: '#e8e6dc', spots: ['#d9a93a', '#f0cf6a'], glow: '255,220,140', fin: 1.2 },
+    { name: 'Platinum Ogon', base: '#e9eef2', spots: [], glow: '230,240,255', fin: 1.2 },
+    { name: 'Yamabuki Ogon', base: '#f2c230', spots: ['#fbe28a'], glow: '255,214,110', fin: 1.2 },
+    { name: 'Asagi', base: '#6f8fb0', spots: ['#e0713c', '#e0713c'], glow: '140,190,230', fin: 1.25 },
+    { name: 'Goshiki', base: '#e8e2d4', spots: ['#d6452c', '#2a3236', '#5c7c9c'], glow: '255,200,170', fin: 1.2 },
+    { name: 'Benigoi', base: '#d9482e', spots: ['#ef7a50'], glow: '255,120,80', fin: 1.2 }
+  ],
+  rare: [
+    { name: 'Moonstone', hue: 190, spots: ['rgba(255,255,255,.55)'], glow: '170,220,255', fin: 1.4 },
+    { name: 'Jade Veil', base: '#7fd1b0', spots: ['#e9fff6', '#2f9a7c'], glow: '120,230,190', fin: 1.55 },
+    { name: 'Amethyst Lace', base: '#b79be0', spots: ['#f5e9ff', '#7a56c2'], glow: '200,160,255', fin: 1.55 },
+    { name: 'Sunset Butterfly', base: '#f29a62', spots: ['#ffe0b8', '#d6524a'], glow: '255,170,110', fin: 1.65 }
+  ],
+  ultra: [
+    { name: 'Celestial Dragon', base: '#16233f', spots: ['#f2c96b', '#fff0b0'], glow: '255,214,120', fin: 1.85, sparkle: '255,226,150' },
+    { name: 'Aurora', hue: 150, spots: ['rgba(255,255,255,.6)'], glow: '140,255,220', fin: 1.85, sparkle: '180,255,230' },
+    { name: 'Phoenix', base: '#e8452a', spots: ['#ffb347', '#ffe28a'], glow: '255,130,60', fin: 1.95, sparkle: '255,160,80' }
+  ]
+};
+const matureOf = (r) => MATURE[r.rarity][r.variant];
+const POND_KEY = 'stillwater.pond';
+const loadPond = () => {
+  const d = store.get(POND_KEY, null);
+  const fish = Array.isArray(d && d.fish) ? d.fish.filter((r) => r && RARITY[r.rarity] && MATURE[r.rarity][r.variant] && r.stage >= 0 && r.stage <= STAGES) : [];
+  return { start: (d && d.start) || 0, fish };
+};
+let pond = loadPond(), pondReset = false;
+if (pond.fish.length && Date.now() - pond.start >= POND_MS) { pond = { start: 0, fish: [] }; pondReset = true; store.set(POND_KEY, pond); }
+let sparks = [], nowMs = 0, saveT = 0, petsBuilt = false;
+const savePondNow = () => { clearTimeout(saveT); store.set(POND_KEY, pond); };
+const savePond = () => { clearTimeout(saveT); saveT = setTimeout(savePondNow, 700); };
+addEventListener('pagehide', savePondNow);
+
+function makePet(rec, fromMoon) {
+  const scale = Math.min(1.25, Math.max(.75, Math.min(W, H) / 800));
+  const [lo, hi] = RARITY[rec.rarity].len, adult = (lo + rec.size * (hi - lo)) * scale, N = 16, a = R(0, Math.PI * 2);
+  const len = adult * STAGE_FRAC(rec.stage);
+  const x = fromMoon ? moon.x + R(-24, 24) : R(W * .15, W * .85), y = fromMoon ? moon.y + R(-24, 24) : R(H * .15, H * .85);
+  const type = rec.stage >= STAGES ? matureOf(rec) : JUVENILE[rec.rarity];
+  return { x, y, a, len, N, seg: len / N, speed: R(20, 30), base: R(20, 30), wander: 0, phase: R(0, 6), type, marks: buildMarks(type), gatherA: R(0, Math.PI * 2),
+           pet: rec, adult, flash: 0, pts: Array.from({ length: N }, (_, j) => ({ x: x - Math.cos(a) * j * (len / N), y: y - Math.sin(a) * j * (len / N) })) };
+}
+// Growing fish get food priority; grown fish and the decorative koi only chase pellets when no growing fish is left.
+let anyHungry = false;
+const wantsFood = (k) => k.leaving ? false : k.pet && k.pet.stage < STAGES ? true : !anyHungry;
+
+// Pond cap: when full, the oldest grown common fish swim off first, then grown rare, grown ultra, and only then growing fish.
+const MAX_FISH = 100;
+function makeRoom(n) {
+  const over = pond.fish.length + n - MAX_FISH; if (over <= 0) return;
+  const kinds = ['common', 'rare', 'ultra'], rank = (r) => (r.stage >= STAGES ? 0 : 3) + kinds.indexOf(r.rarity);
+  const gone = new Set(pond.fish.map((r, i) => [r, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).slice(0, over).map((x) => x[0]));
+  pond.fish = pond.fish.filter((r) => !gone.has(r));
+  koi.forEach((k) => { if (k.pet && gone.has(k.pet) && !k.leaving) k.leaving = Date.now(); });
+}
+
+function hatch(rarity) {
+  const n = BATCH[rarity];
+  makeRoom(n);
+  if (!pond.fish.length) pond.start = Date.now();
+  for (let i = 0; i < n; i++) {
+    const rec = { rarity, variant: Math.floor(Math.random() * MATURE[rarity].length), size: Math.random(), stage: 0, eaten: 0 };
+    pond.fish.push(rec); koi.push(makePet(rec, true));
+  }
+  savePondNow();
+  addRipple(moon.x, moon.y, 1.2); AE.grow();
+  renderStatic();
+  const kind = rarity === 'common' ? '' : RARITY[rarity].label + ' ';
+  return n === 1 ? 'You have a new fish.' : `You have ${n} new ${kind}fish${rarity === 'ultra' ? ', glowing' : ''}.`;
+}
+function feedPet(k) {
+  const p = k.pet; if (p.stage >= STAGES) return;
+  if (++p.eaten >= needFor(p.stage)) {
+    p.eaten = 0; p.stage++;
+    if (p.stage >= STAGES) {
+      k.type = matureOf(p); k.marks = buildMarks(k.type); k.flash = 2.5;
+      addRipple(k.x, k.y, 1.6); AE.reveal();
+      toast(`It's grown up: a ${RARITY[p.rarity].label} ${k.type.name}!`);
+    } else { addRipple(k.x, k.y, .8); AE.grow(); }
+    renderStatic();
+  }
+  savePond();
+}
+function checkPondExpiry() {
+  if (pond.fish.length && Date.now() - pond.start >= POND_MS) {
+    pond = { start: 0, fish: [] }; savePondNow();
+    koi = koi.filter((k) => !k.pet);
+    toast('The pond has settled. A new, quiet pond begins.');
+  }
+  renderStatic();
+}
+function pondLine() {
+  if (!pond.fish.length) return 'Finish a session to hatch a fish';
+  const grown = pond.fish.filter((r) => r.stage >= STAGES).length, left = Math.max(0, POND_MS - (Date.now() - pond.start));
+  const h = Math.floor(left / 3600000), m = Math.floor(left % 3600000 / 60000);
+  return `${pond.fish.length} fish · ${grown} grown · resets in ${h}h ${String(m).padStart(2, '0')}m`;
 }
 
 function layout() {
@@ -575,6 +698,7 @@ function layout() {
     pads.push({ x, y, r, rot: srand() * Math.PI * 2, flower: srand() < .35, ph: srand() * 6 });
   }
   if (!koi.length) koi = Array.from({ length: W < 600 ? 5 : 7 }, (_, i) => makeKoi(i));
+  if (!petsBuilt) { petsBuilt = true; makeRoom(0); pond.fish.forEach((r) => koi.push(makePet(r, false))); }
   if (!petals.length) petals = Array.from({ length: 7 }, () => ({ x: R(0, W), y: R(0, H), a: R(0, 6), s: R(.6, 1.1), vx: R(-4, 4), vy: R(-3, 3) }));
   if (!blobs.length) blobs = Array.from({ length: 4 }, (_, i) => ({ ph: i * 1.7, r: R(.35, .55) }));
 }
@@ -589,16 +713,18 @@ function updateKoi(k, dt, now) {
   let targetSpeed = k.base * (T.mode === 'focus' ? .85 : 1.15) * (reduceMotion ? .55 : 1);
   // food
   let best = null, bd = 480;
-  for (const f of food) { const d = Math.hypot(f.x - k.x, f.y - k.y); if (d < bd) { bd = d; best = f; } }
+  if (k.pet) { const tl = k.adult * STAGE_FRAC(k.pet.stage); k.len += (tl - k.len) * Math.min(1, dt * 1.5); k.seg = k.len / k.N; if (k.flash > 0) k.flash -= dt; }
+  if (wantsFood(k)) for (const f of food) { if (f.eaten) continue; const d = Math.hypot(f.x - k.x, f.y - k.y); if (d < bd) { bd = d; best = f; } }
   if (best) {
     desired = Math.atan2(best.y - k.y, best.x - k.x); targetSpeed *= 2.1;
-    if (bd < k.len * .18) { best.eaten = true; addRipple(best.x, best.y, .35); }
+    if (k.pet && bd < 40) targetSpeed *= .6;
+    if (bd < Math.max(k.len * .18, 12)) { best.eaten = true; addRipple(best.x, best.y, .35); if (k.pet) feedPet(k); }
   } else if (now < gatherUntil) {
     const gx = moon.x + Math.cos(k.gatherA + now * .00015) * moon.r * 1.35, gy = moon.y + Math.sin(k.gatherA + now * .00015) * moon.r * 1.15;
     desired = Math.atan2(gy - k.y, gx - k.x); targetSpeed *= 1.6;
   }
   // edges
-  if (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin) {
+  if (!k.leaving && (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin)) {
     const toC = Math.atan2(H / 2 - k.y, W / 2 - k.x);
     desired = k.a + angDiff(k.a, toC) * .9;
   }
@@ -608,9 +734,10 @@ function updateKoi(k, dt, now) {
     const away = Math.atan2(k.y - moon.y, k.x - moon.x);
     desired = k.a + angDiff(k.a, away) * (1 - md / keep) * 1.6 + angDiff(k.a, desired) * (md / keep) * .3;
   }
+  if (k.leaving) { desired = k.a + angDiff(k.a, Math.atan2(k.y - H / 2, k.x - W / 2)) * .9; targetSpeed *= 1.8; }
   // gentle separation
   for (const o of koi) if (o !== k) { const d = Math.hypot(o.x - k.x, o.y - k.y); if (d < k.len * .7) desired += angDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.a) * -.04; }
-  const maxTurn = 1.5 * dt * (best ? 1.8 : 1);
+  const maxTurn = (k.pet ? 3.2 : 1.5) * dt * (best ? 1.8 : 1);
   k.a += Math.max(-maxTurn, Math.min(maxTurn, angDiff(k.a, desired) * Math.min(1, dt * 3)));
   k.speed += (targetSpeed - k.speed) * Math.min(1, dt * 1.2);
   k.x += Math.cos(k.a) * k.speed * dt; k.y += Math.sin(k.a) * k.speed * dt;
@@ -619,6 +746,10 @@ function updateKoi(k, dt, now) {
   for (let i = 1; i < p.length; i++) {
     const dx = p[i - 1].x - p[i].x, dy = p[i - 1].y - p[i].y, d = Math.hypot(dx, dy) || 1;
     p[i].x = p[i - 1].x - dx / d * k.seg; p[i].y = p[i - 1].y - dy / d * k.seg;
+  }
+  if (k.type.sparkle && !reduceMotion && sparks.length < 150 && Math.random() < dt * 9) {
+    const q = p[Math.floor(R(3, p.length - 1))];
+    sparks.push({ x: q.x + R(-5, 5), y: q.y + R(-5, 5), vx: R(-6, 6), vy: R(-6, 6), t: 0, life: R(.9, 1.8), col: k.type.sparkle });
   }
 }
 
@@ -652,29 +783,38 @@ function tracePath(o) {
 function drawKoi(k) {
   const o = koiOutline(k), m = o.mid, N = m.length;
   const sh = k.len * .09;
+  const ty = k.type, fs = ty.fin || 1, baseCol = ty.hue !== undefined ? `hsl(${(ty.hue + nowMs * .02) % 360} 75% 74%)` : ty.base;
   // shadow on the pond floor
   cx.save(); cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill();
   cx.restore();
+  // glow (a faint hint on rare fry, full on grown fish) and the reveal flash
+  const glowAt = (r, col, a) => {
+    const c = m[Math.floor(N / 3)], gg = cx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r);
+    gg.addColorStop(0, `rgba(${col},${a})`); gg.addColorStop(1, `rgba(${col},0)`);
+    cx.fillStyle = gg; cx.beginPath(); cx.arc(c.x, c.y, r, 0, Math.PI * 2); cx.fill();
+  };
+  if (ty.glow) glowAt(k.len * (ty.hint ? .8 : 1), ty.glow, ty.hint ? .16 : .3 + Math.sin(nowMs * .002 + k.phase) * .06);
+  if (k.flash > 0) glowAt(k.len * (1 + (2.5 - k.flash) * .9), ty.glow || '255,230,170', k.flash / 2.5 * .55);
   // fins
-  const finCol = k.type.base;
+  const finCol = baseCol;
   cx.fillStyle = finCol; cx.globalAlpha = .55;
   const f = m[3], flap = Math.sin(k.phase * 1.3) * .25;
   [1, -1].forEach((s) => {
     cx.beginPath();
-    cx.ellipse(f.x + f.nx * s * f.w * 1.25, f.y + f.ny * s * f.w * 1.25, k.len * .12, k.len * .045, f.th + Math.PI + s * (1.0 + flap), 0, Math.PI * 2);
+    cx.ellipse(f.x + f.nx * s * f.w * 1.25, f.y + f.ny * s * f.w * 1.25, k.len * .12 * fs, k.len * .045 * fs, f.th + Math.PI + s * (1.0 + flap), 0, Math.PI * 2);
     cx.fill();
   });
   const tl = m[N - 1], tb = m[N - 3], tw = Math.sin(k.phase - N * .45) * .5;
   const ta = Math.atan2(tl.y - tb.y, tl.x - tb.x);
   cx.beginPath(); cx.moveTo(tb.x, tb.y);
-  const tlen = k.len * .26;
+  const tlen = k.len * .26 * fs;
   cx.quadraticCurveTo(tl.x + Math.cos(ta + .9 + tw) * tlen * .6, tl.y + Math.sin(ta + .9 + tw) * tlen * .6, tl.x + Math.cos(ta + .5 + tw) * tlen, tl.y + Math.sin(ta + .5 + tw) * tlen);
   cx.quadraticCurveTo(tl.x + Math.cos(ta + tw) * tlen * .55, tl.y + Math.sin(ta + tw) * tlen * .55, tl.x + Math.cos(ta - .5 + tw) * tlen, tl.y + Math.sin(ta - .5 + tw) * tlen);
   cx.quadraticCurveTo(tl.x + Math.cos(ta - .9 + tw) * tlen * .6, tl.y + Math.sin(ta - .9 + tw) * tlen * .6, tb.x, tb.y);
   cx.fill();
   cx.globalAlpha = 1;
   // body
-  cx.save(); tracePath(o); cx.fillStyle = k.type.base; cx.fill(); cx.clip();
+  cx.save(); tracePath(o); cx.fillStyle = baseCol; cx.fill(); cx.clip();
   for (const mk of k.marks) {
     const i = Math.floor(mk.at * (N - 1)), pt = m[i];
     cx.fillStyle = mk.col; cx.beginPath();
@@ -762,7 +902,7 @@ function drawMoon(now) {
 
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const dt = Math.min(.05, (now - last) / 1000); last = now; nowMs = now;
   // water
   const g = cx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.top); g.addColorStop(1, C.bottom);
   cx.fillStyle = g; cx.fillRect(0, 0, W, H);
@@ -776,7 +916,12 @@ function frame(now) {
   // food pellets
   food = food.filter((f) => !f.eaten && (f.t += dt) < 9);
   for (const f of food) { cx.fillStyle = `rgba(214,170,110,${Math.min(1, (9 - f.t) / 2) * .9})`; cx.beginPath(); cx.arc(f.x, f.y, 2.6, 0, Math.PI * 2); cx.fill(); }
+  const tNow = Date.now();
+  koi = koi.filter((k) => !k.leaving || (tNow - k.leaving < 15000 && k.x > -80 && k.x < W + 80 && k.y > -80 && k.y < H + 80));
+  anyHungry = koi.some((o) => o.pet && !o.leaving && o.pet.stage < STAGES);
   for (const k of koi) { updateKoi(k, dt, Date.now()); drawKoi(k); }
+  sparks = sparks.filter((s) => (s.t += dt) < s.life);
+  for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; cx.fillStyle = `rgba(${s.col},${(1 - s.t / s.life) * .9})`; cx.beginPath(); cx.arc(s.x, s.y, 1.5, 0, Math.PI * 2); cx.fill(); }
   // ripples
   ripples = ripples.filter((r) => (r.t += dt) < r.life);
   for (const r of ripples) {
@@ -816,7 +961,7 @@ cv.addEventListener('pointermove', (e) => {
 /* ---------- Timer & UI ---------- */
 const el = {
   time: $('#time'), status: $('#status'), cue: $('#cue'), suggest: $('#suggest'), start: $('#startBtn'), startLbl: $('#startLbl'), startIcon: $('#startIcon'),
-  stones: $('#stones'), roundLbl: $('#roundLbl'), today: $('#today'), toast: $('#toast'), music: $('#musicBtn'), musicLbl: $('#musicLbl')
+  stones: $('#stones'), roundLbl: $('#roundLbl'), today: $('#today'), pondInfo: $('#pondInfo'), toast: $('#toast'), music: $('#musicBtn'), musicLbl: $('#musicLbl')
 };
 const PLAY = '<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>';
 const PAUSE = '<rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/>';
@@ -877,6 +1022,7 @@ function renderStatic() {
   const roundNo = T.mode === 'focus' ? inCycle + 1 : (inCycle === 0 ? (T.cycle ? S.rounds : 1) : inCycle);
   el.roundLbl.textContent = `Round ${roundNo} of ${S.rounds}`;
   el.today.textContent = `${todayData.count} focus round${todayData.count === 1 ? '' : 's'} today`;
+  el.pondInfo.textContent = pondLine();
 }
 
 let toastTimer;
@@ -914,15 +1060,16 @@ function complete() {
   releaseScreen();
   gatherUntil = Date.now() + 14000;
   addRipple(moon.x, moon.y, 1.6);
+  const fishMsg = hatch(was === 'focus' ? 'common' : was === 'short' ? 'rare' : 'ultra');
   if (was === 'focus') {
     AE.bell('rest');
     const len = MODES[m].len();
-    toast(m === 'long' ? `That's ${S.rounds} rounds. Take a long rest: ${len} minutes.` : `Focus round complete. Rest for ${len} minute${len === 1 ? '' : 's'}.`);
+    toast(fishMsg + ' ' + (m === 'long' ? `That's ${S.rounds} rounds. Take a long rest: ${len} minutes.` : `Rest for ${len} minute${len === 1 ? '' : 's'}.`));
     notify('Time to rest', `Step away for ${len} minutes. The koi have gathered.`);
     setMode(m, S.autoRest);
   } else {
     AE.bell('focus');
-    toast('Rest is over. Start focusing when you feel ready.');
+    toast(fishMsg + ' Rest is over. Start focusing when you feel ready.');
     notify('Rest is over', 'Come back when you feel ready.');
     setMode(m, S.autoFocus);
   }
@@ -1006,8 +1153,11 @@ document.addEventListener('keydown', (e) => {
 /* Background check so the bell still rings when the tab is hidden */
 setInterval(() => { if (T.running && Date.now() >= T.endAt) tickUI(performance.now()); }, 500);
 
+setInterval(checkPondExpiry, 30000);
+
 addEventListener('resize', () => { layout(); });
 readColors(); layout(); document.fonts?.ready.then(layout); renderStatic(); renderScapes(); renderMusic(); renderNotify();
+if (pondReset) toast('The pond has settled. A new, quiet pond begins.');
 requestAnimationFrame(frame);
 })();
 </script>
