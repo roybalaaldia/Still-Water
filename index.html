@@ -139,6 +139,24 @@ button, input, select { font: inherit; color: inherit; }
 }
 .toast.show { opacity: 1; transform: none; }
 
+/* Mini timer: while the user feeds by hand, the stage fades out and a small pill sits under the header */
+.stage > :not(.toast) { transition: opacity .5s, transform .6s cubic-bezier(.16,1,.3,1), visibility 0s; }
+.ui.is-mini .stage > :not(.toast) { opacity: 0; visibility: hidden; transform: scale(.94); transition: opacity .4s, transform .6s cubic-bezier(.16,1,.3,1), visibility 0s .4s; }
+.mini {
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 74px); transform: translateX(-50%) scale(.94);
+  display: flex; align-items: center; gap: 2px; padding: 4px 6px 4px 4px; border-radius: 999px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px -10px var(--shadow);
+  opacity: 0; visibility: hidden; transition: opacity .4s, transform .6s cubic-bezier(.16,1,.3,1), visibility 0s .4s;
+}
+.ui.is-mini .mini { opacity: 1; visibility: visible; transform: translateX(-50%); transition: opacity .5s .1s, transform .6s .1s cubic-bezier(.16,1,.3,1), visibility 0s; }
+.mini-play { width: 36px; height: 36px; border-radius: 999px; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); }
+.mini-play svg { width: 16px; height: 16px; }
+.mini-time { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 8px; border: 0; background: transparent; cursor: pointer; }
+.mini-time span:first-child { font-family: var(--font-display); font-size: 1.35rem; font-weight: 400; letter-spacing: -0.01em; font-variant-numeric: tabular-nums lining-nums; font-variation-settings: "SOFT" 100, "opsz" 48; }
+.mini-mode { font-size: .78rem; color: var(--muted); }
+.mini-bar { position: absolute; left: 16px; right: 16px; bottom: 2px; height: 2px; border-radius: 2px; background: var(--faint); display: block; }
+.mini-bar b { display: block; height: 100%; border-radius: inherit; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+
 /* Footer */
 .bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
 .rounds { display: flex; align-items: center; gap: 10px; }
@@ -158,7 +176,9 @@ button, input, select { font: inherit; color: inherit; }
   padding: calc(env(safe-area-inset-top, 0px) + 22px) 24px calc(env(safe-area-inset-bottom, 0px) + 28px);
   box-shadow: -20px 0 60px -20px var(--shadow);
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+  box-sizing: border-box; overflow-x: hidden; overscroll-behavior: contain;
 }
+.sheet *, .sheet *::before, .sheet *::after { box-sizing: border-box; }
 .sheet.open { transform: none; }
 .sheet header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .sheet h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; font-variation-settings: "SOFT" 100; }
@@ -166,7 +186,7 @@ button, input, select { font: inherit; color: inherit; }
 .field { display: grid; gap: 6px; margin-bottom: 16px; }
 .field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .field label { font-weight: 500; }
-.field output { font-variant-numeric: tabular-nums; color: var(--muted); }
+.field output { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
 .check { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 3px 0 0; flex: none; }
 .note { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
@@ -200,12 +220,43 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   .brand span { display: none; }
   .pill-btn .lbl { display: none; }
   .pill-btn { padding: 0; width: 44px; justify-content: center; }
-  .hint { order: 3; flex-basis: 100%; }
   .modes button { padding: 7px 11px; }
+  /* footer stacks and centers; the stage already explains tap-and-slide feeding */
+  .bottom { flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: .82rem; }
+  .hint { display: none; }
+  .today { text-align: center; }
+  /* settings become a full-screen panel with a sticky header so Close is always in reach */
+  .sheet { width: 100%; border-left: 0; padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+  .sheet header { position: sticky; top: 0; z-index: 1; margin: 0 -20px 4px; padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px 12px; background: var(--sheet); border-bottom: 1px solid var(--line); }
+  .sheet h2 { font-size: 1.4rem; }
+  .sheet h3 { margin-top: 24px; }
+}
+@media (max-width: 360px) {
+  .scapes { grid-template-columns: 1fr; }
+  .modes button { padding: 7px 9px; font-size: .82rem; }
+}
+/* touch screens: bigger slider handles, no keyboard shortcuts list */
+@media (hover: none) and (pointer: coarse) {
+  input[type=range] { height: 32px; }
+  input[type=range]::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -10px; }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; }
+  .keys-h, .keys { display: none; }
 }
 @media (max-height: 560px) {
   .suggest { display: none; }
-  .time { font-size: clamp(3.5rem, 13vh, 5rem); }
+  .time { font-size: clamp(3rem, 15vh, 4.5rem); }
+  /* phones in landscape: tighter stage, one-line footer, toast floats above the footer instead of taking up space */
+  .ui { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  .stage { gap: 6px; }
+  .modes button { padding: 5px 12px; }
+  .cue { min-height: 0; }
+  .primary { height: 46px; }
+  .toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: calc(env(safe-area-inset-bottom, 0px) + 44px); }
+  .bottom { flex-wrap: nowrap; align-items: center; }
+  .hint { display: none; }
+  .today span { display: inline; }
+  .today span + span:not(:empty)::before { content: " · "; }
+  .mini { top: calc(env(safe-area-inset-top, 0px) + 62px); }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01s !important; }
@@ -214,7 +265,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 </head>
 <body>
 
-<canvas id="pond" aria-label="Koi pond. Tap the water to feed the koi." role="img"></canvas>
+<canvas id="pond" aria-label="Koi pond. Tap the water, or tap and slide, to feed the koi." role="img"></canvas>
 
 <div class="ui">
   <header class="top">
@@ -239,7 +290,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
     <p class="time" id="time" aria-live="off">25:00</p>
     <p class="status" id="status">25 minutes of focus. Press Start when you're ready.</p>
     <p class="cue" id="cue" aria-live="polite"></p>
-    <p class="suggest" id="suggest">Tap the water to feed the koi.</p>
+    <p class="suggest" id="suggest">Tap the water, then slide to keep feeding the koi.</p>
     <div class="controls">
       <button class="icon-btn" id="resetBtn" aria-label="Restart this session" title="Restart (R)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
@@ -255,9 +306,17 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
     <p class="toast" id="toast" role="status" aria-live="polite"></p>
   </main>
 
+  <div class="mini" id="mini" aria-hidden="true">
+    <button class="mini-play" id="miniStart" aria-label="Start">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="miniIcon"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+    </button>
+    <button class="mini-time" id="miniExpand" aria-label="Show the full timer"><span id="miniTime">25:00</span><span class="mini-mode" id="miniMode">Focus</span></button>
+    <i class="mini-bar" aria-hidden="true"><b id="miniBar"></b></i>
+  </div>
+
   <footer class="bottom">
     <div class="rounds"><div class="stones" id="stones" aria-hidden="true"></div><span id="roundLbl">Round 1 of 4</span></div>
-    <div class="hint">Tap to feed the koi · drag to stir the water</div>
+    <div class="hint">Tap to feed the koi · slide to keep the pellets falling</div>
     <div class="today"><span id="today">0 focus rounds today</span><span id="pondInfo"></span></div>
   </footer>
 </div>
@@ -278,6 +337,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   <div class="field"><div class="field-row"><label for="roundsLen">Focus rounds before a long rest</label><output id="roundsOut" for="roundsLen"></output></div><input type="range" id="roundsLen" min="2" max="8" step="1"></div>
   <label class="check"><input type="checkbox" id="autoRest"><span>Start rests automatically when a focus round ends</span></label>
   <label class="check"><input type="checkbox" id="autoFocus"><span>Start the next focus round automatically after a rest</span></label>
+  <label class="check"><input type="checkbox" id="autoFeed"><span>Feed the young fish automatically every 30 seconds during focus</span></label>
 
   <h3>Soundscape</h3>
   <div class="scapes" id="scapes">
@@ -291,7 +351,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   <div class="btn-row"><button class="ghost" id="testBell">Ring the bell</button><button class="ghost" id="notifyBtn">Allow desktop alerts</button></div>
   <p class="note" id="notifyNote">The bell rings and the tab title changes when a session ends, even if this tab is in the background.</p>
 
-  <h3>Keyboard</h3>
+  <h3 class="keys-h">Keyboard</h3>
   <dl class="keys">
     <dt><kbd>Space</kbd></dt><dd>Start or pause</dd>
     <dt><kbd>S</kbd></dt><dd>Skip to the next session</dd>
@@ -311,7 +371,7 @@ const store = {
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- Settings & state ---------- */
-const defaults = { focus: 25, short: 5, long: 15, rounds: 4, autoRest: true, autoFocus: false, scape: 'pond', musicVol: 55, bellVol: 75 };
+const defaults = { focus: 25, short: 5, long: 15, rounds: 4, autoRest: true, autoFocus: false, autoFeed: true, scape: 'pond', musicVol: 55, bellVol: 75 };
 const S = Object.assign({}, defaults, store.get('stillwater.settings', {}));
 const saveSettings = () => store.set('stillwater.settings', S);
 const todayKey = new Date().toDateString();
@@ -498,15 +558,15 @@ const AE = (() => {
     get musicOn() { return musicOn; },
     setMusicVol(v) { if (ctx && musicOn) music.gain.setTargetAtTime(v, ctx.currentTime, .2); },
     setBellVol(v) { if (ctx) sfx.gain.setTargetAtTime(v, ctx.currentTime, .1); },
-    plip(xFrac) {
+    plip(xFrac, vol = 1) {
       if (!init()) return;
       const scale = [62, 64, 66, 69, 71, 74, 76, 78, 81, 83];
       const idx = Math.max(0, Math.min(scale.length - 1, Math.floor(xFrac * scale.length)));
       const t = ctx.currentTime + .01;
-      chime(scale[idx], t, .09, (xFrac * 2 - 1) * .7, sfx);
+      chime(scale[idx], t, .09 * vol, (xFrac * 2 - 1) * .7, sfx);
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(240, t + .14);
-      g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
+      g.gain.setValueAtTime(.05 * vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
       o.connect(g); g.connect(sfx); o.start(t); o.stop(t + .2);
     },
     grow() { if (!init()) return; const t = ctx.currentTime + .01; chime(81, t, .05, 0, sfx); chime(86, t + .12, .04, 0, sfx); },
@@ -520,13 +580,47 @@ const AE = (() => {
 })();
 
 /* ---------- Pond rendering ---------- */
-const cv = $('#pond'), cx = cv.getContext('2d');
+const cv = $('#pond'), cx = cv.getContext('2d', { alpha: false });   // the water always covers the canvas, so no alpha to composite
 let W = 0, H = 0, DPR = 1, C = {};
 const readColors = () => {
   const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
   C = { top: v('--water-top'), bottom: v('--water-bottom'), caustic: v('--caustic'), moon: v('--moon'), pad: v('--pad'), padHi: v('--pad-hi'),
         vein: v('--vein'), petal: v('--petal'), shadow: v('--shadow'), ripple: v('--ripple'), light: cs.colorScheme === 'light' || v('color-scheme') === 'light' };
+  glowCache.clear(); bgAt = 0; buildPadSprites();
 };
+
+/* ---------- Performance: cached sprites and adaptive quality ---------- */
+// Radial glows are pre-rendered once per colour and stamped with drawImage + globalAlpha instead of a new gradient every frame.
+const glowCache = new Map();
+function glowSprite(col, inner = 0) {
+  const key = col + '|' + inner; let s = glowCache.get(key); if (s) return s;
+  s = document.createElement('canvas'); s.width = s.height = 128;
+  const g = s.getContext('2d'), gr = g.createRadialGradient(64, 64, 64 * inner, 64, 64, 64);
+  gr.addColorStop(0, `rgba(${col},1)`); gr.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); glowCache.set(key, s); return s;
+}
+function stampGlow(spr, x, y, r, a) { if (a <= 0) return; cx.globalAlpha = Math.min(1, a); cx.drawImage(spr, x - r, y - r, r * 2, r * 2); cx.globalAlpha = 1; }
+// The water and its slow caustic blobs are painted into a small canvas a few times a second, then scaled up (they're soft anyway).
+const bgC = document.createElement('canvas'), bg = bgC.getContext('2d', { alpha: false }), BG_SCALE = 8;
+let bgAt = 0;
+// Quality tiers, chosen automatically from the real frame rate: 2 = full, 1 = lighter, 0 = lightest.
+const QUALITY = [
+  { dpr: 1, shadows: false, sparks: 25, rings: 2 },
+  { dpr: 1.25, shadows: true, sparks: 60, rings: 3 },
+  { dpr: 1.75, shadows: true, sparks: 150, rings: 3 }
+];
+let Q = 2, qFailed = 3, frameEma = 16.7, qCheckAt = performance.now() + 3000, qGoodSince = 0;   // 3s warm-up before judging
+const q = () => QUALITY[Q];
+function adaptQuality(interval, now) {
+  if (interval > 250) { frameEma = 16.7; qCheckAt = now + 2000; return; }   // tab was hidden or the page stalled: don't judge that
+  frameEma += (interval - frameEma) * .05;
+  if (now < qCheckAt) return;
+  qCheckAt = now + 1000;
+  if (frameEma > 24 && Q > 0) { qFailed = Math.min(qFailed, Q); Q--; qGoodSince = 0; layout(); qCheckAt = now + 2500; }   // under ~42 fps: step down
+  else if (frameEma < 15.5 && Q + 1 < qFailed) {                                                    // smooth for 20s: step back up, never to a tier that already struggled
+    if (!qGoodSince) qGoodSince = now; else if (now - qGoodSince > 20000) { Q++; qGoodSince = 0; layout(); qCheckAt = now + 2500; }
+  } else qGoodSince = 0;
+}
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readColors);
 new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -535,7 +629,8 @@ const R = (a, b) => a + Math.random() * (b - a);
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 
 let pads = [], koi = [], ripples = [], food = [], petals = [], blobs = [];
-let moon = { x: 0, y: 0, r: 120 };
+let moon = { x: 0, y: 0, r: 120 }, moonFull = { x: 0, y: 0, r: 120 }, moonMini = { x: 0, y: 0, r: 34 };
+let miniOn = false, miniK = 0;   // miniK eases 0 → 1 as the moon slides from the full timer to the mini pill
 let gatherUntil = 0;
 
 const KOI_TYPES = [
@@ -678,13 +773,95 @@ function pondLine() {
   return `${pond.fish.length} fish · ${grown} grown · resets in ${h}h ${String(m).padStart(2, '0')}m`;
 }
 
+/* ---------- Dance show: when every collection fish is grown, they swim in shapes ---------- */
+// The first show starts a few seconds after the last fish grows up, then one every 3 minutes. Each show performs
+// every shape in a random order, each for a random 12–18s (fireworks: three bursts) in a random direction.
+// Feeding breaks the formation; the fish regroup after eating.
+const SHOW_GAP = 180000, LAP_S = 22;
+const SHAPES = {   // u in [0,1) → a point in unit space, roughly [-1,1] on both axes; `tall` shapes turn vertical on portrait screens
+  circle:   (u) => { const a = u * Math.PI * 2; return [Math.cos(a) * .9, Math.sin(a) * .9]; },
+  infinity: (u) => { const a = u * Math.PI * 2, s = Math.sin(a), c = Math.cos(a), k = 1 + s * s; return [c / k, 1.6 * s * c / k - .08]; },
+  spiral:   (u) => { const a = u * Math.PI * 6, r = .2 + .8 * Math.abs(1 - 2 * u); return [Math.cos(a) * r, Math.sin(a) * r]; },
+  wave:     (u) => { const s = u < .5 ? 4 * u - 1 : 3 - 4 * u, y = .55 * Math.cos(1.5 * Math.PI * s); return [s * .95, u < .5 ? y : -y]; },
+  heart:    (u) => { const a = u * Math.PI * 2, s = Math.sin(a); return [s * s * s, -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) / 16 - .15]; },
+  flower:   (u) => { const a = u * Math.PI * 2, c = Math.cos(2.5 * a), r = .4 + .6 * c * c; return [Math.cos(a) * r, Math.sin(a) * r]; }
+};
+// Shapes that need each fish's slot and the time within the shape, not just a spot on a loop.
+const FW_CYCLE = 7000;   // fireworks: gather for ~2.5s, burst, droop, then relaunch somewhere else
+const MOVES = {
+  galaxy: (slot, n, local, dir) => {   // three curved arms, slowly turning
+    const arm = slot % 3, m = Math.ceil(n / 3), s = (Math.floor(slot / 3) + .5) / m, r = .12 + .88 * s;
+    const a = arm * Math.PI * 2 / 3 + s * 2.6 + dir * local / 1000 * .28; return [Math.cos(a) * r, Math.sin(a) * r];
+  },
+  fireworks: (slot, n, local, dir, seed) => {
+    const c = Math.floor(local / FW_CYCLE), p = local % FW_CYCLE / FW_CYCLE;
+    const h = (k) => { const v = Math.sin((c + 1) * 78.233 + seed * 12.9898 + k * 37.719) * 43758.5453; return v - Math.floor(v); };
+    const bx = (h(1) * 2 - 1) * .5, by = (h(2) * 2 - 1) * .3 - .1;   // each burst launches from a different spot
+    const a = slot / Math.max(1, n) * Math.PI * 2 + c * .7;
+    if (p < .35) return [bx + Math.cos(a) * .05, by + Math.sin(a) * .05];   // gather into a tight shell
+    const q = (p - .35) / .65, r = .08 + .55 * (1 - (1 - q) ** 3);           // burst out fast, then slow
+    return [bx + Math.cos(a) * r, by + Math.sin(a) * r + .3 * q * q];          // and droop as the sparks fall
+  }
+};
+const TALL = { infinity: true, wave: true };
+let timeBox = { x: 0, y: 0, rx: 1, ry: 1 };   // oval around the timer digits, measured in layout()
+let simT = 0;   // seconds of pond time (advances only while frames are drawn)
+let show = null, nextShowAt = 0, wasAllGrown = false, danceN = 0, danceOops = 0, showChecked = 0, shows = 0;
+const danceAt = { x: 0, y: 0 };   // reused each call: no per-fish garbage
+const allGrown = () => pond.fish.length > 0 && pond.fish.every((r) => r.stage >= STAGES);
+function updateShow(now) {
+  if (now - showChecked < 500) return; showChecked = now;
+  if (!allGrown()) { endShow(); wasAllGrown = false; return; }
+  if (!wasAllGrown) { wasAllGrown = true; nextShowAt = now + (now > 6000 ? 4000 : 8000); }   // just grew up: short pause for the reveal
+  if (show && now >= show.end) { endShow(); nextShowAt = now + SHOW_GAP; }
+  if (!show && now >= nextShowAt) {
+    // every show is different: random order, length and direction for every shape
+    const order = shuffle([...Object.keys(SHAPES), ...Object.keys(MOVES)]);
+    const durs = order.map((n) => n === 'fireworks' ? FW_CYCLE * 3 : R(12000, 18000)), dirs = order.map(() => Math.random() < .5 ? 1 : -1);
+    show = { start: now, end: now + durs.reduce((a, b) => a + b, 0), order, durs, dirs, seed: Math.random() * 100, cur: null };
+    if (W < 600) setMini(true);   // phones: the timer takes the mini pill during the show so the shapes get the whole pond
+    if (!shows++) toast('Every fish is grown. The pond is dancing for you.');
+  }
+}
+function endShow() { if (!show) return; show = null; if (W < 600) setMini(false); }
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// Which shape is playing at show time `ms`, and how far into it (`local`), in which direction.
+function shapeAt(ms) {
+  let t = ms - show.start, i = 0;
+  while (i < show.order.length - 1 && t >= show.durs[i]) t -= show.durs[i++];
+  return { name: show.order[i], local: t, dir: show.dirs[i] };
+}
+function danceTarget(slot, now) {
+  if (show.curMs !== now) { show.cur = shapeAt(now); show.curMs = now; }   // once per frame, not once per fish ('late' fish ask for an earlier time)
+  const sh = show.cur, name = sh.name;
+  let ux, uy;
+  if (MOVES[name]) [ux, uy] = MOVES[name](slot, danceN, sh.local, sh.dir, show.seed);
+  else {
+    const u = ((slot / Math.max(1, danceN) + sh.dir * sh.local / 1000 / (LAP_S * (reduceMotion ? 1.5 : 1)) + .015 * sh.dir) % 1 + 1) % 1;
+    [ux, uy] = SHAPES[name](u);
+  }
+  if (TALL[name] && H > W * 1.15) [ux, uy] = [uy, ux];
+  // shapes fill the pond between the header and footer
+  const ox = W / 2, top = 90, bottom = H - 80, oy = (top + bottom) / 2;
+  const sx = W / 2 - Math.max(40, Math.min(100, W * .08)), sy = Math.max(60, (bottom - top) / 2 - 20);
+  let x = ox + ux * sx, y = oy + uy * sy;
+  // keep the timer digits readable: points inside the oval around them slide out to its edge (not needed while minimized)
+  const dx = x - timeBox.x, dy = y - timeBox.y, e = (dx / timeBox.rx) ** 2 + (dy / timeBox.ry) ** 2;
+  if (!miniOn && e < 1) { if (e < 1e-4) { x = timeBox.x; y = timeBox.y - timeBox.ry; } else { const k = 1 / Math.sqrt(e); x = timeBox.x + dx * k; y = timeBox.y + dy * k; } }
+  danceAt.x = x; danceAt.y = y; return danceAt;
+}
+
 function layout() {
-  DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+  DPR = Math.min(window.devicePixelRatio || 1, q().dpr);
   W = innerWidth; H = innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  bgC.width = Math.ceil(W / BG_SCALE) + 2; bgC.height = Math.ceil(H / BG_SCALE) + 2; bgAt = 0;
   const t = $('#time').getBoundingClientRect();
-  moon.x = t.left + t.width / 2; moon.y = t.top + t.height / 2;
-  moon.r = Math.max(105, Math.min(210, Math.min(W, H) * .24));
+  timeBox = { x: t.left + t.width / 2, y: t.top + t.height / 2, rx: t.width / 2 + 34, ry: t.height / 2 + 26 };
+  moonFull = { x: t.left + t.width / 2, y: t.top + t.height / 2, r: Math.max(105, Math.min(210, Math.min(W, H) * .24)) };
+  const mm = $('#mini').getBoundingClientRect();
+  moonMini = { x: mm.left + mm.width / 2, y: mm.top + mm.height / 2, r: 34 };
+  Object.assign(moon, moonFull);
   // lily pads around the edges, kept clear of the timer
   seed = 11; pads = [];
   const target = W < 600 ? 6 : 9;
@@ -697,6 +874,7 @@ function layout() {
     if (pads.some((p) => Math.hypot(p.x - x, p.y - y) < p.r + r + 14)) continue;
     pads.push({ x, y, r, rot: srand() * Math.PI * 2, flower: srand() < .35, ph: srand() * 6 });
   }
+  buildPadSprites();
   if (!koi.length) koi = Array.from({ length: W < 600 ? 5 : 7 }, (_, i) => makeKoi(i));
   if (!petsBuilt) { petsBuilt = true; makeRoom(0); pond.fish.forEach((r) => koi.push(makePet(r, false))); }
   if (!petals.length) petals = Array.from({ length: 7 }, () => ({ x: R(0, W), y: R(0, H), a: R(0, 6), s: R(.6, 1.1), vx: R(-4, 4), vy: R(-3, 3) }));
@@ -712,31 +890,50 @@ function updateKoi(k, dt, now) {
   let desired = k.a + k.wander * .9;
   let targetSpeed = k.base * (T.mode === 'focus' ? .85 : 1.15) * (reduceMotion ? .55 : 1);
   // food
-  let best = null, bd = 480;
+  let best = null, bd = 480 * 480;   // squared distances: no square root per pellet
   if (k.pet) { const tl = k.adult * STAGE_FRAC(k.pet.stage); k.len += (tl - k.len) * Math.min(1, dt * 1.5); k.seg = k.len / k.N; if (k.flash > 0) k.flash -= dt; }
-  if (wantsFood(k)) for (const f of food) { if (f.eaten) continue; const d = Math.hypot(f.x - k.x, f.y - k.y); if (d < bd) { bd = d; best = f; } }
+  if (wantsFood(k)) for (const f of food) { if (f.eaten) continue; const dx = f.x - k.x, dy = f.y - k.y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = f; } }
   if (best) {
+    bd = Math.sqrt(bd);
     desired = Math.atan2(best.y - k.y, best.x - k.x); targetSpeed *= 2.1;
     if (k.pet && bd < 40) targetSpeed *= .6;
     if (bd < Math.max(k.len * .18, 12)) { best.eaten = true; addRipple(best.x, best.y, .35); if (k.pet) feedPet(k); }
+  } else if (show && k.slot >= 0) {
+    // dance: swim to this fish's moving spot on the current shape (aim slightly ahead so the formation flows)
+    const ms = simT * 1000, oops = k.oops && ms < k.oops.until ? k.oops : (k.oops = null);
+    if (!oops && danceOops < Math.max(1, Math.floor(danceN / 12)) && Math.random() < dt / 30 && (() => { const sh = shapeAt(ms); return sh.local > 5000 && sh.name !== 'fireworks'; })()) {
+      // a little mistake: fall behind, drift out of line, or spin in confusion — then hurry back
+      const type = ['late', 'drift', 'spin'][Math.floor(Math.random() * 3)];
+      k.oops = { type, until: ms + R(1800, 3200), off: R(70, 130), dir: Math.random() < .5 ? 1 : -1 }; danceOops++;
+    }
+    const t = danceTarget(k.slot, k.oops && k.oops.type === 'late' ? ms - 2600 : ms);
+    let tx = t.x, ty = t.y;
+    if (k.oops && k.oops.type === 'drift') { const ox = tx - W / 2, oy = ty - H / 2, od = Math.hypot(ox, oy) || 1; tx = Math.max(40, Math.min(W - 40, tx + ox / od * k.oops.off)); ty = Math.max(70, Math.min(H - 50, ty + oy / od * k.oops.off)); }
+    const d = Math.hypot(tx - k.x, ty - k.y);
+    desired = Math.atan2(ty - k.y, tx - k.x); targetSpeed = Math.min(200, 26 + d * .9);
+    if (k.oops && k.oops.type === 'spin') { desired = k.a + k.oops.dir * 2.4; targetSpeed = 34; }
+    // don't cut across the timer digits while catching up: steer out of the oval around them
+    const ex = (k.x - timeBox.x) / timeBox.rx, ey = (k.y - timeBox.y) / timeBox.ry, e = ex * ex + ey * ey;
+    if (!miniOn && e < 1.2) desired = k.a + angDiff(k.a, Math.atan2(ey * timeBox.ry, ex * timeBox.rx)) * (1.25 - e);
   } else if (now < gatherUntil) {
     const gx = moon.x + Math.cos(k.gatherA + now * .00015) * moon.r * 1.35, gy = moon.y + Math.sin(k.gatherA + now * .00015) * moon.r * 1.15;
     desired = Math.atan2(gy - k.y, gx - k.x); targetSpeed *= 1.6;
   }
-  // edges
-  if (!k.leaving && (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin)) {
+  // edges (dancers' shapes already stay inside the pond)
+  if (!k.leaving && !(show && k.slot >= 0 && !best) && (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin)) {
     const toC = Math.atan2(H / 2 - k.y, W / 2 - k.x);
     desired = k.a + angDiff(k.a, toC) * .9;
   }
   // keep the moon (and the timer on it) clear
   const md = Math.hypot(k.x - moon.x, k.y - moon.y), keep = moon.r * 1.08;
-  if (md < keep && !(best && Math.hypot(best.x - moon.x, best.y - moon.y) < keep)) {
+  if (md < keep && !(best && Math.hypot(best.x - moon.x, best.y - moon.y) < keep) && !(show && k.slot >= 0 && !best)) {   // dancers may cross the moon's reflection
     const away = Math.atan2(k.y - moon.y, k.x - moon.x);
     desired = k.a + angDiff(k.a, away) * (1 - md / keep) * 1.6 + angDiff(k.a, desired) * (md / keep) * .3;
   }
   if (k.leaving) { desired = k.a + angDiff(k.a, Math.atan2(k.y - H / 2, k.x - W / 2)) * .9; targetSpeed *= 1.8; }
   // gentle separation
-  for (const o of koi) if (o !== k) { const d = Math.hypot(o.x - k.x, o.y - k.y); if (d < k.len * .7) desired += angDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.a) * -.04; }
+  const sep = k.len * .7, sep2 = sep * sep;
+  for (const o of koi) if (o !== k) { const dx = o.x - k.x, dy = o.y - k.y; if (dx * dx + dy * dy < sep2) desired += angDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.a) * -.04; }
   const maxTurn = (k.pet ? 3.2 : 1.5) * dt * (best ? 1.8 : 1);
   k.a += Math.max(-maxTurn, Math.min(maxTurn, angDiff(k.a, desired) * Math.min(1, dt * 3)));
   k.speed += (targetSpeed - k.speed) * Math.min(1, dt * 1.2);
@@ -747,27 +944,30 @@ function updateKoi(k, dt, now) {
     const dx = p[i - 1].x - p[i].x, dy = p[i - 1].y - p[i].y, d = Math.hypot(dx, dy) || 1;
     p[i].x = p[i - 1].x - dx / d * k.seg; p[i].y = p[i - 1].y - dy / d * k.seg;
   }
-  if (k.type.sparkle && !reduceMotion && sparks.length < 150 && Math.random() < dt * 9) {
+  if (k.type.sparkle && !reduceMotion && sparks.length < q().sparks && Math.random() < dt * 9) {
     const q = p[Math.floor(R(3, p.length - 1))];
     sparks.push({ x: q.x + R(-5, 5), y: q.y + R(-5, 5), vx: R(-6, 6), vy: R(-6, 6), t: 0, life: R(.9, 1.8), col: k.type.sparkle });
   }
 }
 
+// Outline points are reused per fish (no new objects each frame, so no garbage-collection stutter on phones).
 function koiOutline(k) {
-  const p = k.pts, N = p.length, L = [], Rr = [], mid = [];
+  const p = k.pts, N = p.length;
+  if (!k.o) k.o = { L: Array.from({ length: N }, () => ({ x: 0, y: 0 })), Rr: Array.from({ length: N }, () => ({ x: 0, y: 0 })), mid: Array.from({ length: N }, () => ({})) };
+  const { L, Rr, mid } = k.o;
   for (let i = 0; i < N; i++) {
-    const a = i ? p[i - 1] : { x: p[0].x + Math.cos(k.a), y: p[0].y + Math.sin(k.a) };
-    const th = Math.atan2(a.y - p[i].y, a.x - p[i].x);
+    const ax = i ? p[i - 1].x : p[0].x + Math.cos(k.a), ay = i ? p[i - 1].y : p[0].y + Math.sin(k.a);
+    const th = Math.atan2(ay - p[i].y, ax - p[i].x);
     const t = i / (N - 1);
     const wave = Math.sin(k.phase - i * .45) * k.len * .035 * Math.pow(t, 1.3);
     const nx = -Math.sin(th), ny = Math.cos(th);
     const px = p[i].x + nx * wave, py = p[i].y + ny * wave;
     const prof = t < .22 ? .78 + .22 * Math.sin(t / .22 * Math.PI / 2) : 1 - Math.pow((t - .22) / .78, 1.25) * .9;
     const w = k.len * .115 * prof;
-    mid.push({ x: px, y: py, th, w, nx, ny });
-    L.push({ x: px + nx * w, y: py + ny * w }); Rr.push({ x: px - nx * w, y: py - ny * w });
+    const md = mid[i]; md.x = px; md.y = py; md.th = th; md.w = w; md.nx = nx; md.ny = ny;
+    L[i].x = px + nx * w; L[i].y = py + ny * w; Rr[i].x = px - nx * w; Rr[i].y = py - ny * w;
   }
-  return { L, Rr, mid };
+  return k.o;
 }
 function tracePath(o) {
   const { L, Rr, mid } = o;
@@ -781,18 +981,15 @@ function tracePath(o) {
   cx.closePath();
 }
 function drawKoi(k) {
+  const reach = k.len * 2;   // skip fish that are fully off-screen (swimming away)
+  if (k.x < -reach || k.x > W + reach || k.y < -reach || k.y > H + reach) return;
   const o = koiOutline(k), m = o.mid, N = m.length;
   const sh = k.len * .09;
   const ty = k.type, fs = ty.fin || 1, baseCol = ty.hue !== undefined ? `hsl(${(ty.hue + nowMs * .02) % 360} 75% 74%)` : ty.base;
-  // shadow on the pond floor
-  cx.save(); cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill();
-  cx.restore();
+  // shadow on the pond floor (dropped on the lightest quality tier)
+  if (q().shadows) { cx.save(); cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill(); cx.restore(); }
   // glow (a faint hint on rare fry, full on grown fish) and the reveal flash
-  const glowAt = (r, col, a) => {
-    const c = m[Math.floor(N / 3)], gg = cx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r);
-    gg.addColorStop(0, `rgba(${col},${a})`); gg.addColorStop(1, `rgba(${col},0)`);
-    cx.fillStyle = gg; cx.beginPath(); cx.arc(c.x, c.y, r, 0, Math.PI * 2); cx.fill();
-  };
+  const glowAt = (r, col, a) => { const c = m[Math.floor(N / 3)]; stampGlow(glowSprite(col), c.x, c.y, r, a); };
   if (ty.glow) glowAt(k.len * (ty.hint ? .8 : 1), ty.glow, ty.hint ? .16 : .3 + Math.sin(nowMs * .002 + k.phase) * .06);
   if (k.flash > 0) glowAt(k.len * (1 + (2.5 - k.flash) * .9), ty.glow || '255,230,170', k.flash / 2.5 * .55);
   // fins
@@ -830,16 +1027,27 @@ function drawKoi(k) {
   [1, -1].forEach((s) => { cx.beginPath(); cx.arc(h.x + Math.cos(h.th) * h.w * .35 + h.nx * s * h.w * .62, h.y + Math.sin(h.th) * h.w * .35 + h.ny * s * h.w * .62, Math.max(1.2, h.w * .12), 0, Math.PI * 2); cx.fill(); });
 }
 
+// Each pad (shadow, leaf, veins) is drawn once into its own sprite; per frame it is only rotated by the sway and stamped.
+function buildPadSprites() {
+  const notch = .32;
+  for (const p of pads) {
+    const r = p.r, half = Math.ceil(r * 1.3) + 2, s = document.createElement('canvas');
+    s.width = s.height = Math.ceil(half * 2 * DPR);
+    const g = s.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, half * DPR, half * DPR);
+    g.fillStyle = C.shadow; g.beginPath(); g.moveTo(r * .1, r * .16); g.arc(r * .1, r * .16, r, notch, Math.PI * 2 - notch); g.closePath(); g.fill();
+    const gr = g.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r);
+    gr.addColorStop(0, C.padHi); gr.addColorStop(1, C.pad);
+    g.fillStyle = gr; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, notch, Math.PI * 2 - notch); g.closePath(); g.fill();
+    g.strokeStyle = C.vein; g.lineWidth = 1; g.beginPath();
+    for (let i = 1; i < 9; i++) { const a = notch + (Math.PI * 2 - notch * 2) * i / 9; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * .92, Math.sin(a) * r * .92); }
+    g.stroke();
+    p.sprite = s; p.half = half;
+  }
+}
 function drawPad(p, now) {
   const sway = Math.sin(now * .0004 + p.ph) * .04, r = p.r;
   cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot + sway);
-  const notch = .32;
-  cx.fillStyle = C.shadow; cx.beginPath(); cx.moveTo(r * .1, r * .16); cx.arc(r * .1, r * .16, r, notch, Math.PI * 2 - notch); cx.closePath(); cx.fill();
-  const g = cx.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r);
-  g.addColorStop(0, C.padHi); g.addColorStop(1, C.pad);
-  cx.fillStyle = g; cx.beginPath(); cx.moveTo(0, 0); cx.arc(0, 0, r, notch, Math.PI * 2 - notch); cx.closePath(); cx.fill();
-  cx.strokeStyle = C.vein; cx.lineWidth = 1;
-  for (let i = 1; i < 9; i++) { const a = notch + (Math.PI * 2 - notch * 2) * i / 9; cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(Math.cos(a) * r * .92, Math.sin(a) * r * .92); cx.stroke(); }
+  if (p.sprite) cx.drawImage(p.sprite, -p.half, -p.half, p.half * 2, p.half * 2);
   if (p.flower) {
     const fr = r * .42, bloom = .85 + Math.sin(now * .0006 + p.ph) * .05;
     cx.translate(-r * .25, -r * .1);
@@ -863,9 +1071,7 @@ function drawMoon(now) {
   let p = progress(); if (rest) p = 1 - p;
   p = Math.max(0, Math.min(1, p));
   const glowA = C.light ? .32 : .16;
-  const glow = cx.createRadialGradient(x, y, r * .2, x, y, r * 2.1);
-  glow.addColorStop(0, `rgba(${C.moon},${glowA * (.45 + p * .55)})`); glow.addColorStop(1, `rgba(${C.moon},0)`);
-  cx.fillStyle = glow; cx.fillRect(x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  stampGlow(glowSprite(C.moon, .2 / 2.1), x, y, r * 2.1, glowA * (.45 + p * .55));
   // the unlit disc
   cx.strokeStyle = `rgba(${C.moon},${C.light ? .5 : .28})`; cx.lineWidth = 1;
   cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.stroke();
@@ -901,17 +1107,29 @@ function drawMoon(now) {
 }
 
 let last = performance.now();
-function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now; nowMs = now;
-  // water
-  const g = cx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.top); g.addColorStop(1, C.bottom);
-  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+function paintWater(now) {
+  bg.setTransform(1 / BG_SCALE, 0, 0, 1 / BG_SCALE, 0, 0);
+  const g = bg.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.top); g.addColorStop(1, C.bottom);
+  bg.fillStyle = g; bg.fillRect(0, 0, W + BG_SCALE * 2, H + BG_SCALE * 2);
   for (const b of blobs) {
     const bx = W * (.5 + Math.sin(now * .00005 + b.ph) * .45), by = H * (.5 + Math.cos(now * .00004 + b.ph * 1.3) * .45), br = Math.max(W, H) * b.r;
-    const cg = cx.createRadialGradient(bx, by, 0, bx, by, br);
+    const cg = bg.createRadialGradient(bx, by, 0, bx, by, br);
     cg.addColorStop(0, `rgba(${C.caustic},${C.light ? .22 : .05})`); cg.addColorStop(1, `rgba(${C.caustic},0)`);
-    cx.fillStyle = cg; cx.fillRect(bx - br, by - br, br * 2, br * 2);
+    bg.fillStyle = cg; bg.fillRect(bx - br, by - br, br * 2, br * 2);
   }
+}
+function frame(now) {
+  // high-refresh screens (120Hz+) draw every other refresh: the pond is slow-moving, 60fps is plenty
+  if (now - last < 10) { requestAnimationFrame(frame); return; }
+  const rawDt = (now - last) / 1000, dt = Math.min(.05, rawDt); last = now; nowMs = now;
+  adaptQuality(rawDt * 1000, now);
+  miniK += ((miniOn ? 1 : 0) - miniK) * (reduceMotion ? 1 : Math.min(1, Math.min(.25, rawDt) * 3.5));   // real time, so slow devices don't lag behind the pill
+  const me = miniK * miniK * (3 - 2 * miniK);
+  moon.x = moonFull.x + (moonMini.x - moonFull.x) * me; moon.y = moonFull.y + (moonMini.y - moonFull.y) * me; moon.r = moonFull.r + (moonMini.r - moonFull.r) * me;
+  // water: repainted small ~8 times a second (the blobs drift very slowly), then scaled up smoothly
+  if (now - bgAt > 120) { bgAt = now; paintWater(now); }
+  cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+  cx.drawImage(bgC, 0, 0, bgC.width, bgC.height, 0, 0, bgC.width * BG_SCALE, bgC.height * BG_SCALE);
   drawMoon(now);
   // food pellets
   food = food.filter((f) => !f.eaten && (f.t += dt) < 9);
@@ -919,14 +1137,18 @@ function frame(now) {
   const tNow = Date.now();
   koi = koi.filter((k) => !k.leaving || (tNow - k.leaving < 15000 && k.x > -80 && k.x < W + 80 && k.y > -80 && k.y < H + 80));
   anyHungry = koi.some((o) => o.pet && !o.leaving && o.pet.stage < STAGES);
-  for (const k of koi) { updateKoi(k, dt, Date.now()); drawKoi(k); }
+  simT += dt; updateShow(simT * 1000);   // the show runs on pond time, so on slow devices the fish can always keep up with it
+  // dancers: every grown collection fish plus the original decorative koi
+  danceN = 0; danceOops = 0;
+  for (const k of koi) { k.slot = show && !k.leaving && (!k.pet || k.pet.stage >= STAGES) ? danceN++ : -1; if (k.slot < 0) k.oops = null; else if (k.oops && simT * 1000 < k.oops.until) danceOops++; }
+  for (const k of koi) { updateKoi(k, dt, tNow); drawKoi(k); }
   sparks = sparks.filter((s) => (s.t += dt) < s.life);
   for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; cx.fillStyle = `rgba(${s.col},${(1 - s.t / s.life) * .9})`; cx.beginPath(); cx.arc(s.x, s.y, 1.5, 0, Math.PI * 2); cx.fill(); }
   // ripples
   ripples = ripples.filter((r) => (r.t += dt) < r.life);
   for (const r of ripples) {
     const k = r.t / r.life;
-    for (let j = 0; j < 3; j++) {
+    for (let j = 0; j < q().rings; j++) {
       const rad = (r.t * 46 - j * 14) * (0.7 + r.s * .4); if (rad <= 0) continue;
       cx.strokeStyle = `rgba(${C.ripple},${(1 - k) * (.5 - j * .13) * Math.min(1, r.s + .3)})`; cx.lineWidth = 1.4 - j * .3;
       cx.beginPath(); cx.ellipse(r.x, r.y, rad, rad * .82, 0, 0, Math.PI * 2); cx.stroke();
@@ -946,22 +1168,67 @@ function frame(now) {
 
 /* ---------- Pond interaction ---------- */
 let dragging = false, lastStir = 0;
+// Hand feeding shrinks the timer to a mini pill so the middle of the pond opens up; it returns after 8s without a tap.
+const MINI_IDLE = 8000;
+let miniTimer = 0;
+function setMini(on) {
+  clearTimeout(miniTimer); if (on === miniOn) return;
+  miniOn = on; document.querySelector('.ui').classList.toggle('is-mini', on); $('#mini').setAttribute('aria-hidden', String(!on));
+}
+function nudgeMini() { setMini(true); miniTimer = setTimeout(() => { if (!(show && W < 600)) setMini(false); }, MINI_IDLE); }
+// Pellets on the water are capped so a long scribble can't slow down low-end devices; the oldest sink first.
+const MAX_FOOD = 250;
+function dropPellet(x, y) { food.push({ x, y, t: 0 }); if (food.length > MAX_FOOD) food.splice(0, food.length - MAX_FOOD); }
+// Tap drops 3 pellets; sliding keeps sprinkling one pellet every TRAIL_GAP px along the path, with a soft plip every few.
+const TRAIL_GAP = 25;
+let trail = null;
 cv.addEventListener('pointerdown', (e) => {
-  dragging = true; cv.setPointerCapture?.(e.pointerId);
+  dragging = true; cv.setPointerCapture?.(e.pointerId); nudgeMini();
   addRipple(e.clientX, e.clientY, 1);
-  for (let i = 0; i < 3; i++) food.push({ x: e.clientX + R(-14, 14), y: e.clientY + R(-14, 14), t: 0 });
+  for (let i = 0; i < 3; i++) dropPellet(e.clientX + R(-14, 14), e.clientY + R(-14, 14));
   AE.plip(e.clientX / W);
+  trail = { x: e.clientX, y: e.clientY, carry: 0, n: 0 };
 });
 cv.addEventListener('pointermove', (e) => {
-  if (!dragging) return; const n = performance.now();
-  if (n - lastStir > 70) { lastStir = n; addRipple(e.clientX, e.clientY, .4); }
+  if (!dragging || !trail) return; const n = performance.now();
+  if (n - lastStir > 70) { lastStir = n; addRipple(e.clientX, e.clientY, .4); nudgeMini(); }
+  const dx = e.clientX - trail.x, dy = e.clientY - trail.y, d = Math.hypot(dx, dy);
+  let at = TRAIL_GAP - trail.carry;
+  for (; at <= d; at += TRAIL_GAP) {
+    const px = trail.x + dx * at / d, py = trail.y + dy * at / d;
+    dropPellet(px + R(-6, 6), py + R(-6, 6));
+    if (++trail.n % 4 === 0) AE.plip(px / W, .3);
+  }
+  trail.carry = (trail.carry + d) % TRAIL_GAP; trail.x = e.clientX; trail.y = e.clientY;
 });
-['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => dragging = false));
+['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => { dragging = false; trail = null; }));
+
+/* Auto feeder: every 30s of running focus, sprinkle 20 taps (60 pellets) near the growing fish over ~1.5s */
+const FEED_EVERY = 30000, FEED_TAPS = 20, FEED_SPREAD = 1500;
+let feedSlot = 0;
+function feederTap() {
+  const live = koi.filter((k) => !k.leaving), young = live.filter((k) => k.pet && k.pet.stage < STAGES);
+  const pool = young.length ? young : live; if (!pool.length) return;
+  const k = pool[Math.floor(Math.random() * pool.length)], ahead = k.len * .6;
+  const x = Math.max(20, Math.min(W - 20, k.x + Math.cos(k.a) * ahead + R(-20, 20)));
+  const y = Math.max(20, Math.min(H - 20, k.y + Math.sin(k.a) * ahead + R(-20, 20)));
+  addRipple(x, y, .5);
+  for (let i = 0; i < 3; i++) dropPellet(x + R(-14, 14), y + R(-14, 14));
+  AE.plip(x / W, .15);
+}
+function autoFeed() { for (let i = 0; i < FEED_TAPS; i++) setTimeout(feederTap, i * FEED_SPREAD / FEED_TAPS + R(0, 40)); }
+// Slots count elapsed focus time, so pausing keeps the countdown and restarting or switching modes resets it.
+function checkFeeder() {
+  const slot = T.mode === 'focus' ? Math.floor((total() - T.remaining) / FEED_EVERY) : 0;
+  if (slot > feedSlot && T.running && T.mode === 'focus' && S.autoFeed) autoFeed();
+  feedSlot = slot;
+}
 
 /* ---------- Timer & UI ---------- */
 const el = {
   time: $('#time'), status: $('#status'), cue: $('#cue'), suggest: $('#suggest'), start: $('#startBtn'), startLbl: $('#startLbl'), startIcon: $('#startIcon'),
-  stones: $('#stones'), roundLbl: $('#roundLbl'), today: $('#today'), pondInfo: $('#pondInfo'), toast: $('#toast'), music: $('#musicBtn'), musicLbl: $('#musicLbl')
+  stones: $('#stones'), roundLbl: $('#roundLbl'), today: $('#today'), pondInfo: $('#pondInfo'), toast: $('#toast'), music: $('#musicBtn'), musicLbl: $('#musicLbl'),
+  miniTime: $('#miniTime'), miniMode: $('#miniMode'), miniStart: $('#miniStart'), miniIcon: $('#miniIcon'), miniBar: $('#miniBar')
 };
 const PLAY = '<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>';
 const PAUSE = '<rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/>';
@@ -991,9 +1258,11 @@ function tickUI(now) {
     T.remaining = Math.max(0, T.endAt - Date.now());
     if (T.remaining <= 0) complete();
   }
+  checkFeeder();
+  if (miniK > .001) el.miniBar.style.transform = `scaleX(${Math.max(0, Math.min(1, progress()))})`;
   const txt = fmt(T.remaining);
   if (txt !== lastShown) {
-    lastShown = txt; el.time.textContent = txt;
+    lastShown = txt; el.time.textContent = txt; el.miniTime.textContent = txt;
     if (T.running) document.title = `${txt} · ${MODES[T.mode].label} · Stillwater`;
   }
   // breathing: 4s in, 2s hold, 6s out
@@ -1011,11 +1280,12 @@ function renderStatic() {
   document.querySelectorAll('.modes button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === T.mode)));
   el.startLbl.textContent = T.running ? 'Pause' : (T.remaining < total() ? 'Resume' : 'Start');
   el.startIcon.innerHTML = T.running ? PAUSE : PLAY;
+  el.miniIcon.innerHTML = T.running ? PAUSE : PLAY; el.miniStart.setAttribute('aria-label', el.startLbl.textContent); el.miniMode.textContent = MODES[T.mode].label;
   const mins = MODES[T.mode].len();
   if (T.running) el.status.textContent = T.mode === 'focus' ? `Focus until ${clock(T.endAt)}` : `Resting until ${clock(T.endAt)}`;
   else if (T.remaining < total()) el.status.textContent = 'Paused. The pond will wait.';
   else el.status.textContent = T.mode === 'focus' ? `${mins} minutes of focus. Press Start when you're ready.` : `${mins} minutes to rest. Press Start to begin.`;
-  if (T.mode === 'focus') el.suggest.textContent = T.running ? 'One task at a time. The moon fills as you work.' : 'Tap the water to feed the koi.';
+  if (T.mode === 'focus') el.suggest.textContent = T.running ? 'One task at a time. The moon fills as you work.' : 'Tap the water, then slide to keep feeding the koi.';
   else el.suggest.textContent = T.mode === 'long' ? LONG_TIPS[tipIdx % LONG_TIPS.length] : REST_TIPS[tipIdx % REST_TIPS.length];
   const inCycle = T.cycle % S.rounds;
   el.stones.innerHTML = Array.from({ length: S.rounds }, (_, i) => `<i class="${i < inCycle || (T.cycle > 0 && inCycle === 0 && T.mode === 'long') ? 'done' : ''}"></i>`).join('');
@@ -1077,6 +1347,8 @@ function complete() {
 }
 
 el.start.addEventListener('click', () => (T.running ? pause() : start()));
+el.miniStart.addEventListener('click', () => { T.running ? pause() : start(); nudgeMini(); });
+$('#miniExpand').addEventListener('click', () => { setMini(false); el.start.focus({ preventScroll: true }); });
 $('#resetBtn').addEventListener('click', () => { const r = T.running; T.remaining = total(); if (r) { T.endAt = Date.now() + T.remaining; } lastShown = ''; renderStatic(); });
 $('#skipBtn').addEventListener('click', () => { const m = next(false); setMode(m); toast(m === 'focus' ? 'Skipped the rest.' : 'Skipped ahead to a rest.'); });
 document.querySelectorAll('.modes button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.mode !== T.mode) setMode(b.dataset.mode); }));
@@ -1120,7 +1392,7 @@ ranges.forEach(([id, key, outId, f]) => {
     renderStatic();
   });
 });
-['autoRest', 'autoFocus'].forEach((k) => { const c = $('#' + k); c.checked = S[k]; c.addEventListener('change', () => { S[k] = c.checked; saveSettings(); }); });
+['autoRest', 'autoFocus', 'autoFeed'].forEach((k) => { const c = $('#' + k); c.checked = S[k]; c.addEventListener('change', () => { S[k] = c.checked; saveSettings(); }); });
 
 function renderScapes() { document.querySelectorAll('#scapes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scape === S.scape))); }
 document.querySelectorAll('#scapes button').forEach((b) => b.addEventListener('click', () => {
@@ -1142,6 +1414,7 @@ nBtn.addEventListener('click', async () => {
 /* Keyboard */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && sheet.classList.contains('open')) { openSheet(false); return; }
+  if (e.key === 'Escape' && miniOn) { setMini(false); return; }
   if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === ' ' && !e.target.closest('button')) { e.preventDefault(); el.start.click(); }
@@ -1155,7 +1428,8 @@ setInterval(() => { if (T.running && Date.now() >= T.endAt) tickUI(performance.n
 
 setInterval(checkPondExpiry, 30000);
 
-addEventListener('resize', () => { layout(); });
+let resizeQueued = false;   // phones fire resize repeatedly while the address bar slides; lay out once per frame at most
+addEventListener('resize', () => { if (resizeQueued) return; resizeQueued = true; requestAnimationFrame(() => { resizeQueued = false; layout(); }); });
 readColors(); layout(); document.fonts?.ready.then(layout); renderStatic(); renderScapes(); renderMusic(); renderNotify();
 if (pondReset) toast('The pond has settled. A new, quiet pond begins.');
 requestAnimationFrame(frame);
