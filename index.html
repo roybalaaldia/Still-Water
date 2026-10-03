@@ -139,6 +139,42 @@ button, input, select { font: inherit; color: inherit; }
 }
 .toast.show { opacity: 1; transform: none; }
 
+/* Last Dance */
+.ld-btn {
+  display: inline-flex; margin-top: 6px; height: 34px; padding: 0 14px; align-items: center; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-weight: 600; font-size: .86rem; pointer-events: auto;
+  box-shadow: 0 0 0 0 rgba(var(--moon), .5); animation: ld-glow 2.6s ease-in-out infinite;
+}
+.ld-btn[hidden] { display: none; }
+@keyframes ld-glow { 50% { box-shadow: 0 0 22px 2px rgba(var(--moon), .45); } }
+.ld-now {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); z-index: 2;
+  display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 16px; border-radius: 999px; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--line); font-size: .88rem; box-shadow: 0 8px 24px -10px var(--shadow);
+}
+.ld-now[hidden] { display: none; }
+.ld-now span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ld-now .ghost { flex: none; height: 34px; }
+.ld-dialog {
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; box-sizing: border-box; padding: 24px;
+  border: 1px solid var(--line); border-radius: 20px; background: var(--sheet); color: var(--fg); box-shadow: 0 30px 80px -20px var(--shadow);
+}
+.ld-dialog::backdrop { background: rgba(0, 0, 0, .45); }
+.ld-dialog h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; margin: 0 0 8px; font-variation-settings: "SOFT" 100; }
+.ld-dialog p { margin: 0 0 16px; color: var(--muted); }
+.ld-choices { display: grid; gap: 8px; margin-bottom: 14px; }
+.ld-choice {
+  display: block; width: 100%; box-sizing: border-box; text-align: left; padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; transition: border-color .3s, background-color .3s;
+}
+.ld-choice:hover, .ld-choice:focus-visible { border-color: var(--accent); background: var(--faint); }
+.ld-choice:has(+ #ldFile:focus-visible) { border-color: var(--accent); }
+.ld-choice b { display: block; font-weight: 600; }
+.ld-choice small { color: var(--muted); font-size: .84rem; }
+.ld-picked { display: grid; gap: 10px; color: var(--fg) !important; }
+.ld-picked[hidden] { display: none; }
+.ld-picked .primary { width: 100%; }
+
 /* Mini timer: while the user feeds by hand, the stage fades out and a small pill sits under the header */
 .stage > :not(.toast) { transition: opacity .5s, transform .6s cubic-bezier(.16,1,.3,1), visibility 0s; }
 .ui.is-mini .stage > :not(.toast) { opacity: 0; visibility: hidden; transform: scale(.94); transition: opacity .4s, transform .6s cubic-bezier(.16,1,.3,1), visibility 0s .4s; }
@@ -317,9 +353,25 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   <footer class="bottom">
     <div class="rounds"><div class="stones" id="stones" aria-hidden="true"></div><span id="roundLbl">Round 1 of 4</span></div>
     <div class="hint">Tap to feed the koi · slide to keep the pellets falling</div>
-    <div class="today"><span id="today">0 focus rounds today</span><span id="pondInfo"></span></div>
+    <div class="today"><span id="today">0 focus rounds today</span><span id="pondInfo"></span><button class="ld-btn" id="ldBtn" hidden>✦ Last Dance</button></div>
   </footer>
 </div>
+
+<div class="ld-now" id="ldNow" hidden><span id="ldNowLbl"></span><button class="ghost" id="ldEnd">End the dance</button></div>
+
+<dialog class="ld-dialog" id="ldDialog" aria-labelledby="ldTitle">
+  <h2 id="ldTitle">The Last Dance</h2>
+  <p id="ldIntro">Your grown fish will dance one last time to a song you choose. When the music ends, they swim out into the wide water for good. The young fish and the koi stay with you.</p>
+  <div class="ld-choices">
+    <label class="ld-choice" for="ldFile"><b>Choose a song file</b><small>Pick your own copy of a song, like “Runaway” by AURORA. It stays on your device.</small></label>
+    <input type="file" id="ldFile" accept="audio/*" class="sr">
+    <button class="ld-choice" id="ldMic"><b>Listen to music nearby</b><small>Play the song on any app or speaker. The pond listens through your microphone.</small></button>
+    <button class="ld-choice" id="ldOrig"><b>Play Stillwater’s farewell</b><small>An original piece made for this moment, about three minutes long.</small></button>
+  </div>
+  <p class="ld-picked" id="ldPicked" hidden><span id="ldPickedName"></span><button class="primary" id="ldBegin">Begin the Last Dance</button></p>
+  <p class="note" id="ldNote" role="status"></p>
+  <div class="btn-row"><button class="ghost" id="ldCancel">Not yet</button></div>
+</dialog>
 
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" aria-label="Settings" aria-hidden="true">
@@ -338,6 +390,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   <label class="check"><input type="checkbox" id="autoRest"><span>Start rests automatically when a focus round ends</span></label>
   <label class="check"><input type="checkbox" id="autoFocus"><span>Start the next focus round automatically after a rest</span></label>
   <label class="check"><input type="checkbox" id="autoFeed"><span>Feed the young fish automatically every 30 seconds during focus</span></label>
+  <label class="check"><input type="checkbox" id="idleFeed"><span>Also feed the young fish every 30 seconds when you're not focusing</span></label>
 
   <h3>Soundscape</h3>
   <div class="scapes" id="scapes">
@@ -371,7 +424,7 @@ const store = {
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- Settings & state ---------- */
-const defaults = { focus: 25, short: 5, long: 15, rounds: 4, autoRest: true, autoFocus: false, autoFeed: true, scape: 'pond', musicVol: 55, bellVol: 75 };
+const defaults = { focus: 25, short: 5, long: 15, rounds: 4, autoRest: true, autoFocus: false, autoFeed: true, idleFeed: true, scape: 'pond', musicVol: 55, bellVol: 75 };
 const S = Object.assign({}, defaults, store.get('stillwater.settings', {}));
 const saveSettings = () => store.set('stillwater.settings', S);
 const todayKey = new Date().toDateString();
@@ -553,8 +606,90 @@ const AE = (() => {
     music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0, ctx.currentTime, .6);
     setTimeout(() => { if (my === gen) stopLayers(); }, 3000);
   }
+  /* "Farewell": an original piece for the Last Dance, scheduled bar by bar.
+     84 bpm, Bm–G–D–A. Intro (8 bars), verse (16), build (8), climax (16), outro (12): about 2:51. */
+  function farewell(dest) {
+    if (!init()) return null;
+    const BPM = 84, B = 60 / BPM, BAR = B * 4, BARS = 60;
+    const PROG = [[47, [59, 62, 66]], [43, [55, 59, 62]], [50, [57, 62, 66]], [45, [57, 61, 64]]];
+    const LEAD = [[74, 1], [73, .5], [71, .5], [69, 1], [71, 1], [74, 1.5], [76, .5], [78, 2], [76, 1], [74, 1], [73, 1], [74, 1], [69, 3], [66, 1]];
+    const fw = ctx.createGain(); fw.gain.value = Math.max(.15, S.musicVol / 100);
+    fw.connect(dest); const wet = ctx.createGain(); wet.gain.value = .35; fw.connect(wet); wet.connect(rev);
+    const hatBuf = noiseBuffer('pink', 1), t0 = ctx.currentTime + .25;
+    const sect = (bar) => bar < 8 ? 'intro' : bar < 24 ? 'verse' : bar < 32 ? 'build' : bar < 48 ? 'climax' : 'outro';
+    const tone = (type, f, t, len, lvl, pan = 0, att = .01) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(lvl, t + att); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+      o.connect(g); g.connect(out(1, pan, fw)); o.start(t); o.stop(t + len + .05); return o;
+    };
+    const kick = (t, lvl) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
+      g.gain.setValueAtTime(lvl, t); g.gain.exponentialRampToValueAtTime(.0001, t + .42);
+      o.connect(g); g.connect(fw); o.start(t); o.stop(t + .45);
+    };
+    const noiseHit = (t, len, lvl, type, f, pan = 0) => {
+      const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = hatBuf; fl.type = type; fl.frequency.value = f; fl.Q.value = type === 'bandpass' ? 1.2 : .7;
+      g.gain.setValueAtTime(lvl, t); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+      s.connect(fl); fl.connect(g); g.connect(out(1, pan, fw)); s.start(t, Math.random() * .5); s.stop(t + len + .02);
+    };
+    const pad = (t, notes, lvl, len) => notes.forEach((n, i) => [-6, 6].forEach((det) => {
+      const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = m2f(n); o.detune.value = det; f.type = 'lowpass'; f.frequency.value = 900;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(lvl / notes.length, t + len * .3); g.gain.linearRampToValueAtTime(0, t + len);
+      o.connect(f); f.connect(g); g.connect(out(1, (i - 1) * .4, fw)); o.start(t); o.stop(t + len + .05);
+    }));
+    function playBar(bar, t) {
+      const s = sect(bar), [root, ch] = PROG[bar % 4], last = bar === BARS - 1;
+      const padLvl = { intro: .09, verse: .08, build: .08, climax: .07, outro: .09 }[s] * (s === 'outro' ? 1 - (bar - 48) / 14 : s === 'intro' ? .5 + bar / 16 : 1);
+      pad(t, last ? [62, 66, 69, 74] : [root - 12, ...ch], padLvl, last ? BAR * 3 : BAR * 1.15);
+      if (s === 'intro' || s === 'outro') for (let i = 0; i < 2; i++) if (Math.random() < .7) chime(ch[Math.floor(Math.random() * 3)] + 12, t + Math.floor(Math.random() * 8) * B / 2, .05, Math.random() - .5, fw);
+      if (last) { bowl(t + BAR * .5, m2f(62), .2); return; }
+      if (s !== 'intro' && s !== 'outro') {   // bass
+        const steps = s === 'climax' ? 8 : 2;
+        for (let i = 0; i < steps; i++) tone('sine', m2f(root - 12), t + i * BAR / steps, BAR / steps * .9, s === 'climax' ? .22 : .18, 0, .02);
+        // arpeggio: chord tones up and back down in eighths
+        const arp = [...ch, ch[0] + 12, ...ch.slice().reverse().slice(1), ch[1] + 12];
+        for (let i = 0; i < 8; i++) tone('triangle', m2f(arp[i % arp.length] + 12), t + i * B / 2, B * .9, s === 'climax' ? .045 : .035, i % 2 ? .45 : -.45);
+      }
+      if (s === 'verse') { kick(t, .5); kick(t + 2 * B, .45); }
+      if (s === 'build') {
+        const rise = (bar - 24) / 8, sub = bar >= 30 ? 4 : 2;
+        for (let i = 0; i < 4; i++) kick(t + i * B, .5 + rise * .2);
+        for (let i = 0; i < 4 * sub; i++) noiseHit(t + i * B / sub, .05, .05 + rise * .07, 'highpass', 6500 + rise * 2500, .3);
+        if (bar === 31) for (let i = 0; i < 16; i++) noiseHit(t + i * B / 4, .12, .05 + i * .012, 'bandpass', 1800);   // snare roll
+      }
+      if (s === 'climax') {
+        for (let i = 0; i < 4; i++) kick(t + i * B, .75);
+        [1, 3].forEach((i) => noiseHit(t + i * B, .2, .22, 'bandpass', 1800));
+        for (let i = 0; i < 4; i++) noiseHit(t + i * B + B / 2, .05, .1, 'highpass', 8000, .3);
+        // lead: an original four-bar melody, a soft sine with a touch of vibrato
+        let at = 0; const startBeat = (bar - 32) % 4 * 4;
+        for (const [n, len] of LEAD) {
+          if (at >= startBeat && at < startBeat + 4) {
+            const tt = t + (at - startBeat) * B, o = tone('sine', m2f(n), tt, len * B * .95, .12, 0, .04), v = ctx.createOscillator(), vg = ctx.createGain();
+            v.frequency.value = 5.2; vg.gain.value = 4; v.connect(vg); vg.connect(o.frequency); v.start(tt); v.stop(tt + len * B);
+          }
+          at += len;
+        }
+      }
+    }
+    let next = 0, stopped = false;
+    const sched = setInterval(() => {
+      if (stopped) return;
+      while (next < BARS && t0 + next * BAR < ctx.currentTime + .7) { playBar(next, t0 + next * BAR); next++; }
+    }, 120);
+    return {
+      duration: BARS * BAR + 4,
+      startedAt: t0,
+      stop() { stopped = true; clearInterval(sched); fw.gain.setTargetAtTime(0, ctx.currentTime, .4); setTimeout(() => fw.disconnect(), 2500); }
+    };
+  }
   return {
-    init, startMusic, stopMusic,
+    init, startMusic, stopMusic, farewell,
+    get ctx() { return ctx; },
+    get master() { return master; },
     get musicOn() { return musicOn; },
     setMusicVol(v) { if (ctx && musicOn) music.gain.setTargetAtTime(v, ctx.currentTime, .2); },
     setBellVol(v) { if (ctx) sfx.gain.setTargetAtTime(v, ctx.currentTime, .1); },
@@ -604,11 +739,15 @@ function stampGlow(spr, x, y, r, a) { if (a <= 0) return; cx.globalAlpha = Math.
 const bgC = document.createElement('canvas'), bg = bgC.getContext('2d', { alpha: false }), BG_SCALE = 8;
 let bgAt = 0;
 // Quality tiers, chosen automatically from the real frame rate: 2 = full, 1 = lighter, 0 = lightest.
+// The canvas resolution is chosen once and never changes while the page runs: resizing a canvas in Chrome can blank
+// the whole screen for a moment. Tiers only lighten effects, and shadows fade rather than pop.
+const BASE_DPR = Math.min(window.devicePixelRatio || 1, (navigator.hardwareConcurrency || 8) <= 4 ? 1.25 : 1.5);
 const QUALITY = [
-  { dpr: 1, shadows: false, sparks: 25, rings: 2 },
-  { dpr: 1.25, shadows: true, sparks: 60, rings: 3 },
-  { dpr: 1.75, shadows: true, sparks: 150, rings: 3 }
+  { shadows: 0, sparks: 25, rings: 2, waterMs: 240 },
+  { shadows: 1, sparks: 60, rings: 3, waterMs: 160 },
+  { shadows: 1, sparks: 150, rings: 3, waterMs: 120 }
 ];
+let shadowK = 1;   // eases toward the tier's shadow level
 let Q = 2, qFailed = 3, frameEma = 16.7, qCheckAt = performance.now() + 3000, qGoodSince = 0;   // 3s warm-up before judging
 const q = () => QUALITY[Q];
 function adaptQuality(interval, now) {
@@ -616,9 +755,9 @@ function adaptQuality(interval, now) {
   frameEma += (interval - frameEma) * .05;
   if (now < qCheckAt) return;
   qCheckAt = now + 1000;
-  if (frameEma > 24 && Q > 0) { qFailed = Math.min(qFailed, Q); Q--; qGoodSince = 0; layout(); qCheckAt = now + 2500; }   // under ~42 fps: step down
+  if (frameEma > 24 && Q > 0) { qFailed = Math.min(qFailed, Q); Q--; qGoodSince = 0; qCheckAt = now + 2500; }   // under ~42 fps: step down
   else if (frameEma < 15.5 && Q + 1 < qFailed) {                                                    // smooth for 20s: step back up, never to a tier that already struggled
-    if (!qGoodSince) qGoodSince = now; else if (now - qGoodSince > 20000) { Q++; qGoodSince = 0; layout(); qCheckAt = now + 2500; }
+    if (!qGoodSince) qGoodSince = now; else if (now - qGoodSince > 20000) { Q++; qGoodSince = 0; qCheckAt = now + 2500; }
   } else qGoodSince = 0;
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readColors);
@@ -722,13 +861,14 @@ let anyHungry = false;
 const wantsFood = (k) => k.leaving ? false : k.pet && k.pet.stage < STAGES ? true : !anyHungry;
 
 // Pond cap: when full, the oldest grown common fish swim off first, then grown rare, grown ultra, and only then growing fish.
-const MAX_FISH = 100;
+const MAX_FISH = 60, FADE_MS = 5000;   // over the cap, the oldest fish quietly fade into the deep, a little apart
 function makeRoom(n) {
   const over = pond.fish.length + n - MAX_FISH; if (over <= 0) return;
   const kinds = ['common', 'rare', 'ultra'], rank = (r) => (r.stage >= STAGES ? 0 : 3) + kinds.indexOf(r.rarity);
   const gone = new Set(pond.fish.map((r, i) => [r, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).slice(0, over).map((x) => x[0]));
   pond.fish = pond.fish.filter((r) => !gone.has(r));
-  koi.forEach((k) => { if (k.pet && gone.has(k.pet) && !k.leaving) k.leaving = Date.now(); });
+  let i = 0;
+  koi.forEach((k) => { if (k.pet && gone.has(k.pet) && !k.leaving) { k.leaving = Date.now(); k.quiet = Date.now() + i++ * 1200; } });
 }
 
 function hatch(rarity) {
@@ -759,6 +899,7 @@ function feedPet(k) {
   savePond();
 }
 function checkPondExpiry() {
+  if (ld) return;   // never reset the pond in the middle of the Last Dance
   if (pond.fish.length && Date.now() - pond.start >= POND_MS) {
     pond = { start: 0, fish: [] }; savePondNow();
     koi = koi.filter((k) => !k.pet);
@@ -823,7 +964,7 @@ function updateShow(now) {
     if (!shows++) toast('Every fish is grown. The pond is dancing for you.');
   }
 }
-function endShow() { if (!show) return; show = null; if (W < 600) setMini(false); }
+function endShow() { if (!show) return; show = null; if (W < 600 && !ld) setMini(false); }
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 // Which shape is playing at show time `ms`, and how far into it (`local`), in which direction.
 function shapeAt(ms) {
@@ -851,10 +992,116 @@ function danceTarget(slot, now) {
   danceAt.x = x; danceAt.y = y; return danceAt;
 }
 
+/* ---------- The Last Dance: at 35 grown fish, they dance to a song one last time, then swim away for good ---------- */
+// The music comes from the user's own song file, the microphone, or AE.farewell (an original track). An AnalyserNode
+// turns it into per-fish amplitudes and beats. Young fish and the decorative koi watch from the edge of the pond.
+// Nothing interrupts it: no pellets, no auto feeder, no regular shows.
+const LD_NEED = 35, LD_MODE_MS = 20000;
+let ld = null;
+const grownCount = () => pond.fish.filter((r) => r.stage >= STAGES).length;
+function startLastDance(kind, file) {
+  if (ld || grownCount() < LD_NEED || !AE.init()) return Promise.resolve(false);
+  const ctx = AE.ctx, an = ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = .78;
+  const L = { kind, an, data: new Uint8Array(an.frequencyBinCount), phase: 'dance', t: 0, rot: 0, pulse: 0, bassAvg: .2, lastBeat: 0,
+              energy: 0, heard: 0, quiet: 0, ended: false, wasMusic: AE.musicOn, label: '', cleanup: [] };
+  const go = () => {
+    if (AE.musicOn) AE.stopMusic();
+    L.dancers = new Set(pond.fish.filter((r) => r.stage >= STAGES));
+    food.length = 0; endShow(); ld = L; setMini(true);
+    $('#ldNowLbl').textContent = L.label; $('#ldNow').hidden = false; renderStatic();
+    addRipple(W / 2, H / 2, 1.8); AE.reveal();
+    return true;
+  };
+  if (kind === 'file') {
+    const url = URL.createObjectURL(file), audio = new Audio(url), src = ctx.createMediaElementSource(audio);
+    src.connect(an); an.connect(AE.master);
+    audio.addEventListener('ended', () => { L.ended = true; });
+    L.label = '♪ ' + file.name.replace(/\.[^.]+$/, '');
+    L.cleanup.push(() => { audio.pause(); src.disconnect(); an.disconnect(); URL.revokeObjectURL(url); });
+    return audio.play().then(go);
+  }
+  if (kind === 'mic') {
+    return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then((stream) => {
+      const src = ctx.createMediaStreamSource(stream); src.connect(an);   // listen only: not sent to the speakers
+      L.label = '♪ Listening to the music nearby';
+      L.cleanup.push(() => { stream.getTracks().forEach((t) => t.stop()); src.disconnect(); });
+      return go();
+    });
+  }
+  const h = AE.farewell(an); an.connect(AE.master);
+  L.label = '♪ Farewell · Stillwater'; L.track = h;
+  L.cleanup.push(() => { h.stop(); setTimeout(() => an.disconnect(), 2600); });
+  return Promise.resolve(go());
+}
+function finishLastDance() {   // the music is over: the dancers scatter to every side and leave the pond for good
+  if (!ld || ld.phase !== 'dance') return;
+  ld.cleanup.forEach((f) => f()); ld.cleanup = [];
+  ld.phase = 'farewell'; ld.t = 0; $('#ldNow').hidden = true;
+  const n = ld.dancers.size;
+  pond.fish = pond.fish.filter((r) => !ld.dancers.has(r)); savePondNow();
+  koi.forEach((k) => { if (k.pet && ld.dancers.has(k.pet)) { k.leaving = Date.now(); k.ldx = undefined; } });
+  addRipple(W / 2, H / 2, 2); AE.bell('rest');
+  toast(`${n} fish swam out into the wide water. Thank you for raising them.`);
+  renderStatic();
+}
+function endLastDance() {
+  if (!ld) return;
+  const wasMusic = ld.wasMusic; ld.cleanup.forEach((f) => f());
+  ld = null; koi.forEach((k) => { k.ldx = undefined; });
+  $('#ldNow').hidden = true; setMini(false); renderStatic();
+  if (wasMusic && S.scapeOn) { AE.startMusic(); renderMusic(); }
+}
+// Runs every frame during the Last Dance: reads the music, then gives every fish a target (k.ldx, k.ldy, k.lds).
+function updateLastDance(dt, now) {
+  const L = ld; L.t += dt;
+  const ox = W / 2, oy = (90 + H - 80) / 2, rx = W / 2 - 50, ry = (H - 170) / 2 + 10;
+  if (L.phase === 'dance') {
+    L.an.getByteFrequencyData(L.data);
+    const d = L.data; let sum = 0, bass = 0;
+    for (let i = 2; i < 180; i++) sum += d[i];
+    for (let i = 1; i < 7; i++) bass += d[i];
+    L.energy = sum / 178 / 255; bass /= 6 * 255;
+    L.bassAvg += (bass - L.bassAvg) * .05;
+    if (bass > L.bassAvg * 1.25 && bass > .3 && now - L.lastBeat > 280) {   // a beat
+      L.lastBeat = now; L.pulse = 1; addRipple(ox + R(-30, 30), oy + R(-30, 30), .9);
+    }
+    L.pulse *= Math.exp(-dt * 5);
+    L.rot += dt * (.12 + L.energy * .9) * (reduceMotion ? .5 : 1);
+    // the song has ended: file finished, the original track ran out, or the mic heard 8s of quiet after music
+    if (L.energy > .08) { L.heard += dt; L.quiet = 0; } else L.quiet += dt;
+    if (L.ended || (L.track && AE.ctx.currentTime > L.track.startedAt + L.track.duration) || (L.kind === 'mic' && L.heard > 3 && L.quiet > 8) || L.t > 600) { finishLastDance(); return; }
+  }
+  const dancers = [], watchers = [];
+  for (const k of koi) { if (k.leaving) continue; (L.phase === 'dance' && k.pet && L.dancers.has(k.pet) ? dancers : watchers).push(k); }
+  // dancers: a living visualiser around the middle of the pond, changing formation every 20s
+  const n = dancers.length, base = Math.min(rx, ry), R0 = base * .42, spread = base * .5 * (reduceMotion ? .5 : 1);
+  const ax = Math.min(1.4, rx / base), ay = Math.min(1.4, ry / base), mode = Math.floor(L.t * 1000 / LD_MODE_MS) % 4;
+  dancers.forEach((k, i) => {
+    const f = 1 - Math.abs(2 * i / Math.max(1, n) - 1), bin = Math.round(2 * Math.pow(90, f));   // mirrored low→high bands around the ring
+    k.amp = (k.amp || 0) + (L.data[bin] / 255 - (k.amp || 0)) * .3;
+    let a = i / Math.max(1, n) * Math.PI * 2 + L.rot, r;
+    if (mode === 0) r = R0 * (1 + L.pulse * .25) + k.amp * spread;                                         // ring
+    else if (mode === 1) { const ray = i % 10, pos = Math.floor(i / 10) / Math.max(1, Math.ceil(n / 10));   // rays
+      a = ray / 10 * Math.PI * 2 + L.rot; r = R0 * .25 + pos * spread * 1.6 * (.45 + L.energy) + L.pulse * 20; }
+    else if (mode === 2) r = i % 2 ? R0 * 1.2 + k.amp * spread * .6 : (a = -a, R0 * .55 + k.amp * spread * .5);   // twin rings, turning opposite ways
+    else r = R0 * (.55 + .5 * Math.abs(Math.cos(3 * a + L.rot * 2))) + k.amp * spread * .6;                  // bloom
+    k.ldx = ox + Math.cos(a) * r * ax; k.ldy = oy + Math.sin(a) * r * ay; k.lds = 240;
+    if (L.pulse > .95 && k.amp > .7 && !reduceMotion) k.flash = Math.max(k.flash || 0, .8);
+  });
+  // watchers: line the edge of the pond during the dance, then gather in the middle once the dancers have gone
+  const gather = L.phase === 'farewell' && L.t > 5;
+  watchers.forEach((k, j) => {
+    const a = j / Math.max(1, watchers.length) * Math.PI * 2 + L.t * .03;
+    const rr = gather ? 50 + (j % 3) * 28 : 1;
+    k.ldx = gather ? ox + Math.cos(a) * rr : ox + Math.cos(a) * rx; k.ldy = gather ? oy + Math.sin(a) * rr : oy + Math.sin(a) * ry; k.lds = gather ? 70 : 45;
+  });
+  if (L.phase === 'farewell' && L.t > 18) { endLastDance(); toast('The pond is quiet again. The young fish have the water to themselves.'); }
+}
+
 function layout() {
-  DPR = Math.min(window.devicePixelRatio || 1, q().dpr);
+  DPR = Math.min(window.devicePixelRatio || 1, BASE_DPR);
   W = innerWidth; H = innerHeight;
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  canvasW = Math.round(W * DPR); canvasH = Math.round(H * DPR);   // applied by fitCanvas() at the start of the next frame
   bgC.width = Math.ceil(W / BG_SCALE) + 2; bgC.height = Math.ceil(H / BG_SCALE) + 2; bgAt = 0;
   const t = $('#time').getBoundingClientRect();
   timeBox = { x: t.left + t.width / 2, y: t.top + t.height / 2, rx: t.width / 2 + 34, ry: t.height / 2 + 26 };
@@ -898,6 +1145,9 @@ function updateKoi(k, dt, now) {
     desired = Math.atan2(best.y - k.y, best.x - k.x); targetSpeed *= 2.1;
     if (k.pet && bd < 40) targetSpeed *= .6;
     if (bd < Math.max(k.len * .18, 12)) { best.eaten = true; addRipple(best.x, best.y, .35); if (k.pet) feedPet(k); }
+  } else if (ld && k.ldx !== undefined) {
+    const d = Math.hypot(k.ldx - k.x, k.ldy - k.y);
+    desired = Math.atan2(k.ldy - k.y, k.ldx - k.x); targetSpeed = Math.min(k.lds, 24 + d * 1.4);
   } else if (show && k.slot >= 0) {
     // dance: swim to this fish's moving spot on the current shape (aim slightly ahead so the formation flows)
     const ms = simT * 1000, oops = k.oops && ms < k.oops.until ? k.oops : (k.oops = null);
@@ -920,17 +1170,17 @@ function updateKoi(k, dt, now) {
     desired = Math.atan2(gy - k.y, gx - k.x); targetSpeed *= 1.6;
   }
   // edges (dancers' shapes already stay inside the pond)
-  if (!k.leaving && !(show && k.slot >= 0 && !best) && (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin)) {
+  if (!k.leaving && !(show && k.slot >= 0 && !best) && !(ld && k.ldx !== undefined) && (k.x < margin || k.x > W - margin || k.y < margin || k.y > H - margin)) {
     const toC = Math.atan2(H / 2 - k.y, W / 2 - k.x);
     desired = k.a + angDiff(k.a, toC) * .9;
   }
   // keep the moon (and the timer on it) clear
   const md = Math.hypot(k.x - moon.x, k.y - moon.y), keep = moon.r * 1.08;
-  if (md < keep && !(best && Math.hypot(best.x - moon.x, best.y - moon.y) < keep) && !(show && k.slot >= 0 && !best)) {   // dancers may cross the moon's reflection
+  if (md < keep && !(best && Math.hypot(best.x - moon.x, best.y - moon.y) < keep) && !(show && k.slot >= 0 && !best) && !(ld && k.ldx !== undefined)) {   // dancers may cross the moon's reflection
     const away = Math.atan2(k.y - moon.y, k.x - moon.x);
     desired = k.a + angDiff(k.a, away) * (1 - md / keep) * 1.6 + angDiff(k.a, desired) * (md / keep) * .3;
   }
-  if (k.leaving) { desired = k.a + angDiff(k.a, Math.atan2(k.y - H / 2, k.x - W / 2)) * .9; targetSpeed *= 1.8; }
+  if (k.leaving && !k.quiet) { desired = k.a + angDiff(k.a, Math.atan2(k.y - H / 2, k.x - W / 2)) * .9; targetSpeed *= 1.8; }   // quiet leavers just keep swimming
   // gentle separation
   const sep = k.len * .7, sep2 = sep * sep;
   for (const o of koi) if (o !== k) { const dx = o.x - k.x, dy = o.y - k.y; if (dx * dx + dy * dy < sep2) desired += angDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.a) * -.04; }
@@ -980,21 +1230,29 @@ function tracePath(o) {
   const h = mid[0]; cx.arc(h.x, h.y, h.w, h.th - Math.PI / 2, h.th + Math.PI / 2, false);
   cx.closePath();
 }
+let wallNow = Date.now(), canvasW = 0, canvasH = 0;
+// Resizing a canvas wipes it, so only touch it when the size really changed, and only right before drawing a frame.
+function fitCanvas() {
+  if (cv.width === canvasW && cv.height === canvasH) return;
+  cv.width = canvasW; cv.height = canvasH; cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
 function drawKoi(k) {
   const reach = k.len * 2;   // skip fish that are fully off-screen (swimming away)
   if (k.x < -reach || k.x > W + reach || k.y < -reach || k.y > H + reach) return;
+  const ka = k.quiet ? Math.max(0, Math.min(1, 1 - (wallNow - k.quiet) / FADE_MS)) : 1;   // a quiet leaver fades into the deep
+  if (ka <= 0) return;
   const o = koiOutline(k), m = o.mid, N = m.length;
   const sh = k.len * .09;
   const ty = k.type, fs = ty.fin || 1, baseCol = ty.hue !== undefined ? `hsl(${(ty.hue + nowMs * .02) % 360} 75% 74%)` : ty.base;
   // shadow on the pond floor (dropped on the lightest quality tier)
-  if (q().shadows) { cx.save(); cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill(); cx.restore(); }
+  if (shadowK > .02) { cx.save(); cx.globalAlpha = shadowK * ka; cx.translate(sh, sh * 1.5); cx.fillStyle = C.shadow; tracePath(o); cx.fill(); cx.restore(); }
   // glow (a faint hint on rare fry, full on grown fish) and the reveal flash
-  const glowAt = (r, col, a) => { const c = m[Math.floor(N / 3)]; stampGlow(glowSprite(col), c.x, c.y, r, a); };
+  const glowAt = (r, col, a) => { const c = m[Math.floor(N / 3)]; stampGlow(glowSprite(col), c.x, c.y, r, a * ka); };
   if (ty.glow) glowAt(k.len * (ty.hint ? .8 : 1), ty.glow, ty.hint ? .16 : .3 + Math.sin(nowMs * .002 + k.phase) * .06);
   if (k.flash > 0) glowAt(k.len * (1 + (2.5 - k.flash) * .9), ty.glow || '255,230,170', k.flash / 2.5 * .55);
   // fins
   const finCol = baseCol;
-  cx.fillStyle = finCol; cx.globalAlpha = .55;
+  cx.fillStyle = finCol; cx.globalAlpha = .55 * ka;
   const f = m[3], flap = Math.sin(k.phase * 1.3) * .25;
   [1, -1].forEach((s) => {
     cx.beginPath();
@@ -1009,7 +1267,7 @@ function drawKoi(k) {
   cx.quadraticCurveTo(tl.x + Math.cos(ta + tw) * tlen * .55, tl.y + Math.sin(ta + tw) * tlen * .55, tl.x + Math.cos(ta - .5 + tw) * tlen, tl.y + Math.sin(ta - .5 + tw) * tlen);
   cx.quadraticCurveTo(tl.x + Math.cos(ta - .9 + tw) * tlen * .6, tl.y + Math.sin(ta - .9 + tw) * tlen * .6, tb.x, tb.y);
   cx.fill();
-  cx.globalAlpha = 1;
+  cx.globalAlpha = ka;
   // body
   cx.save(); tracePath(o); cx.fillStyle = baseCol; cx.fill(); cx.clip();
   for (const mk of k.marks) {
@@ -1025,6 +1283,7 @@ function drawKoi(k) {
   // eyes
   const h = m[0]; cx.fillStyle = 'rgba(20,24,26,.75)';
   [1, -1].forEach((s) => { cx.beginPath(); cx.arc(h.x + Math.cos(h.th) * h.w * .35 + h.nx * s * h.w * .62, h.y + Math.sin(h.th) * h.w * .35 + h.ny * s * h.w * .62, Math.max(1.2, h.w * .12), 0, Math.PI * 2); cx.fill(); });
+  cx.globalAlpha = 1;
 }
 
 // Each pad (shadow, leaf, veins) is drawn once into its own sprite; per frame it is only rotated by the sway and stamped.
@@ -1121,13 +1380,15 @@ function paintWater(now) {
 function frame(now) {
   // high-refresh screens (120Hz+) draw every other refresh: the pond is slow-moving, 60fps is plenty
   if (now - last < 10) { requestAnimationFrame(frame); return; }
+  fitCanvas();
   const rawDt = (now - last) / 1000, dt = Math.min(.05, rawDt); last = now; nowMs = now;
   adaptQuality(rawDt * 1000, now);
   miniK += ((miniOn ? 1 : 0) - miniK) * (reduceMotion ? 1 : Math.min(1, Math.min(.25, rawDt) * 3.5));   // real time, so slow devices don't lag behind the pill
   const me = miniK * miniK * (3 - 2 * miniK);
   moon.x = moonFull.x + (moonMini.x - moonFull.x) * me; moon.y = moonFull.y + (moonMini.y - moonFull.y) * me; moon.r = moonFull.r + (moonMini.r - moonFull.r) * me;
   // water: repainted small ~8 times a second (the blobs drift very slowly), then scaled up smoothly
-  if (now - bgAt > 120) { bgAt = now; paintWater(now); }
+  if (now - bgAt > q().waterMs) { bgAt = now; paintWater(now); }
+  shadowK += (q().shadows - shadowK) * Math.min(1, dt * 1.5);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
   cx.drawImage(bgC, 0, 0, bgC.width, bgC.height, 0, 0, bgC.width * BG_SCALE, bgC.height * BG_SCALE);
   drawMoon(now);
@@ -1135,9 +1396,10 @@ function frame(now) {
   food = food.filter((f) => !f.eaten && (f.t += dt) < 9);
   for (const f of food) { cx.fillStyle = `rgba(214,170,110,${Math.min(1, (9 - f.t) / 2) * .9})`; cx.beginPath(); cx.arc(f.x, f.y, 2.6, 0, Math.PI * 2); cx.fill(); }
   const tNow = Date.now();
-  koi = koi.filter((k) => !k.leaving || (tNow - k.leaving < 15000 && k.x > -80 && k.x < W + 80 && k.y > -80 && k.y < H + 80));
+  koi = koi.filter((k) => !k.leaving || (k.quiet ? tNow < k.quiet + FADE_MS : tNow - k.leaving < 15000 && k.x > -80 && k.x < W + 80 && k.y > -80 && k.y < H + 80));
+  wallNow = tNow;
   anyHungry = koi.some((o) => o.pet && !o.leaving && o.pet.stage < STAGES);
-  simT += dt; updateShow(simT * 1000);   // the show runs on pond time, so on slow devices the fish can always keep up with it
+  simT += dt; if (ld) updateLastDance(dt, tNow); else updateShow(simT * 1000);   // the show runs on pond time, so on slow devices the fish can always keep up with it
   // dancers: every grown collection fish plus the original decorative koi
   danceN = 0; danceOops = 0;
   for (const k of koi) { k.slot = show && !k.leaving && (!k.pet || k.pet.stage >= STAGES) ? danceN++ : -1; if (k.slot < 0) k.oops = null; else if (k.oops && simT * 1000 < k.oops.until) danceOops++; }
@@ -1175,14 +1437,16 @@ function setMini(on) {
   clearTimeout(miniTimer); if (on === miniOn) return;
   miniOn = on; document.querySelector('.ui').classList.toggle('is-mini', on); $('#mini').setAttribute('aria-hidden', String(!on));
 }
-function nudgeMini() { setMini(true); miniTimer = setTimeout(() => { if (!(show && W < 600)) setMini(false); }, MINI_IDLE); }
+function nudgeMini() { setMini(true); miniTimer = setTimeout(() => { if (!(show && W < 600) && !ld) setMini(false); }, MINI_IDLE); }
 // Pellets on the water are capped so a long scribble can't slow down low-end devices; the oldest sink first.
-const MAX_FOOD = 250;
+const MAX_FOOD = 560;   // room for a round-4 feeder release (160 taps = 480 pellets) plus a few leftovers
 function dropPellet(x, y) { food.push({ x, y, t: 0 }); if (food.length > MAX_FOOD) food.splice(0, food.length - MAX_FOOD); }
 // Tap drops 3 pellets; sliding keeps sprinkling one pellet every TRAIL_GAP px along the path, with a soft plip every few.
 const TRAIL_GAP = 25;
 let trail = null;
 cv.addEventListener('pointerdown', (e) => {
+  if (ld) { addRipple(e.clientX, e.clientY, .6); return; }   // nothing interrupts the Last Dance: no pellets
+  idleFedAt = performance.now();   // hand feeding resets the idle feeder's 30s
   dragging = true; cv.setPointerCapture?.(e.pointerId); nudgeMini();
   addRipple(e.clientX, e.clientY, 1);
   for (let i = 0; i < 3; i++) dropPellet(e.clientX + R(-14, 14), e.clientY + R(-14, 14));
@@ -1203,10 +1467,14 @@ cv.addEventListener('pointermove', (e) => {
 });
 ['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => { dragging = false; trail = null; }));
 
-/* Auto feeder: every 30s of running focus, sprinkle 20 taps (60 pellets) near the growing fish over ~1.5s */
-const FEED_EVERY = 30000, FEED_TAPS = 20, FEED_SPREAD = 1500;
+/* Auto feeder: every 30s of running focus, sprinkle taps (3 pellets each) near the growing fish over ~2s.
+   The amount grows with each focus round: 40 taps in round 1, 80 in round 2, 120 in round 3, then 160 from round 4 on,
+   and it stays at 160 after the long rest too (it counts every focus round since the page opened).
+   Only every Nth tap makes a sound, so a bigger release is no louder than round 1. */
+const FEED_EVERY = 30000, FEED_TAPS = 40, FEED_SPREAD = 2000;
 let feedSlot = 0;
-function feederTap() {
+function feederTap(quiet) {
+  if (ld) return;
   const live = koi.filter((k) => !k.leaving), young = live.filter((k) => k.pet && k.pet.stage < STAGES);
   const pool = young.length ? young : live; if (!pool.length) return;
   const k = pool[Math.floor(Math.random() * pool.length)], ahead = k.len * .6;
@@ -1214,14 +1482,25 @@ function feederTap() {
   const y = Math.max(20, Math.min(H - 20, k.y + Math.sin(k.a) * ahead + R(-20, 20)));
   addRipple(x, y, .5);
   for (let i = 0; i < 3; i++) dropPellet(x + R(-14, 14), y + R(-14, 14));
-  AE.plip(x / W, .15);
+  if (!quiet) AE.plip(x / W, .15);
 }
-function autoFeed() { for (let i = 0; i < FEED_TAPS; i++) setTimeout(feederTap, i * FEED_SPREAD / FEED_TAPS + R(0, 40)); }
+const feedRound = () => T.cycle + 1;   // focus rounds so far, including this one (doesn't restart after a long rest)
+function autoFeed(mult = Math.min(4, feedRound())) {
+  const taps = FEED_TAPS * mult;
+  for (let i = 0; i < taps; i++) setTimeout(() => feederTap(i % mult !== 0), i * FEED_SPREAD / taps + R(0, 40));
+}
 // Slots count elapsed focus time, so pausing keeps the countdown and restarting or switching modes resets it.
+// Idle feeder: when no focus session is counting down (not started, paused, or resting) and nobody has fed by hand
+// for 30s, it drops a round-1 release (40 taps) every 30s, but only while there are young fish to grow.
+let idleFedAt = performance.now();
+const hasYoung = () => koi.some((k) => k.pet && !k.leaving && k.pet.stage < STAGES);
 function checkFeeder() {
   const slot = T.mode === 'focus' ? Math.floor((total() - T.remaining) / FEED_EVERY) : 0;
-  if (slot > feedSlot && T.running && T.mode === 'focus' && S.autoFeed) autoFeed();
+  if (slot > feedSlot && T.running && T.mode === 'focus' && S.autoFeed && !ld) autoFeed();
   feedSlot = slot;
+  const n = performance.now();
+  if (T.running && T.mode === 'focus') idleFedAt = n;   // the idle clock starts once focus stops
+  else if (n - idleFedAt >= FEED_EVERY) { idleFedAt = n; if (S.idleFeed && !ld && hasYoung()) autoFeed(1); }
 }
 
 /* ---------- Timer & UI ---------- */
@@ -1293,6 +1572,7 @@ function renderStatic() {
   el.roundLbl.textContent = `Round ${roundNo} of ${S.rounds}`;
   el.today.textContent = `${todayData.count} focus round${todayData.count === 1 ? '' : 's'} today`;
   el.pondInfo.textContent = pondLine();
+  $('#ldBtn').hidden = !!ld || grownCount() < LD_NEED;
 }
 
 let toastTimer;
@@ -1392,7 +1672,7 @@ ranges.forEach(([id, key, outId, f]) => {
     renderStatic();
   });
 });
-['autoRest', 'autoFocus', 'autoFeed'].forEach((k) => { const c = $('#' + k); c.checked = S[k]; c.addEventListener('change', () => { S[k] = c.checked; saveSettings(); }); });
+['autoRest', 'autoFocus', 'autoFeed', 'idleFeed'].forEach((k) => { const c = $('#' + k); c.checked = S[k]; c.addEventListener('change', () => { S[k] = c.checked; saveSettings(); }); });
 
 function renderScapes() { document.querySelectorAll('#scapes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scape === S.scape))); }
 document.querySelectorAll('#scapes button').forEach((b) => b.addEventListener('click', () => {
@@ -1411,11 +1691,37 @@ nBtn.addEventListener('click', async () => {
   renderNotify();
 });
 
+/* Last Dance dialog */
+const ldDlg = $('#ldDialog'), ldNote = $('#ldNote');
+let ldPickedFile = null;
+function ldReset() { ldPickedFile = null; $('#ldFile').value = ''; $('#ldPicked').hidden = true; ldNote.textContent = ''; }
+$('#ldBtn').addEventListener('click', () => {
+  ldReset();
+  $('#ldIntro').textContent = `Your ${grownCount()} grown fish will dance one last time to a song you choose. When the music ends, they swim out into the wide water for good. The young fish and the koi stay with you.`;
+  ldDlg.showModal();
+});
+$('#ldCancel').addEventListener('click', () => ldDlg.close());
+const ldGo = (kind, file) => startLastDance(kind, file).then((ok) => { if (ok) ldDlg.close(); }).catch(() => {
+  ldNote.textContent = kind === 'mic' ? 'The microphone isn’t available. Check your browser’s permission for this page, or choose another option.' : 'That song couldn’t be played. Try a different file, like an MP3 or M4A.';
+});
+$('#ldFile').addEventListener('change', (e) => {
+  ldPickedFile = e.target.files[0] || null; if (!ldPickedFile) return;
+  $('#ldPickedName').textContent = '♪ ' + ldPickedFile.name; $('#ldPicked').hidden = false; ldNote.textContent = '';
+  $('#ldBegin').focus();
+});
+$('#ldBegin').addEventListener('click', () => { if (ldPickedFile) ldGo('file', ldPickedFile); });
+$('#ldMic').addEventListener('click', () => {
+  if (!navigator.mediaDevices?.getUserMedia) { ldNote.textContent = 'This browser can’t listen through the microphone. Choose a song file or the farewell instead.'; return; }
+  ldGo('mic');
+});
+$('#ldOrig').addEventListener('click', () => ldGo('orig'));
+$('#ldEnd').addEventListener('click', finishLastDance);
+
 /* Keyboard */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && sheet.classList.contains('open')) { openSheet(false); return; }
   if (e.key === 'Escape' && miniOn) { setMini(false); return; }
-  if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (ldDlg.open || e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;   // the Last Dance dialog handles its own keys
   const k = e.key.toLowerCase();
   if (k === ' ' && !e.target.closest('button')) { e.preventDefault(); el.start.click(); }
   else if (k === 's') $('#skipBtn').click();
