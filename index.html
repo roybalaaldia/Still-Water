@@ -235,6 +235,9 @@ button, input, select { font: inherit; color: inherit; }
 .scapes button small { color: var(--muted); font-size: .8rem; }
 .scapes button:hover { border-color: var(--muted); }
 .scapes button[aria-pressed="true"] { border-color: var(--accent); background: var(--faint); }
+.spot { position: fixed; left: 12px; bottom: 12px; z-index: 5; width: min(320px, calc(100vw - 24px)); }
+.spot iframe { width: 100%; height: 152px; border: 0; border-radius: 12px; display: block; }
+.spot-in { width: 100%; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; }
 .ghost { height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-weight: 500; }
 .ghost:hover { border-color: var(--accent); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -374,6 +377,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 </dialog>
 
 <div class="scrim" id="scrim"></div>
+<div class="spot" id="spot" hidden></div>
 <aside class="sheet" id="sheet" aria-label="Settings" aria-hidden="true">
   <header>
     <h2>Settings</h2>
@@ -399,7 +403,11 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
     <button data-scape="drone" aria-pressed="false"><b>Deep drone</b><small>Low, slow, almost still</small></button>
     <button data-scape="garden" aria-pressed="false"><b>Night garden</b><small>Crickets, distant chimes</small></button>
   </div>
-  <div class="field" style="margin-top:16px"><div class="field-row"><label for="musicVol">Music volume</label><output id="musicVolOut" for="musicVol"></output></div><input type="range" id="musicVol" min="0" max="100" step="1"></div>
+  <h3>Spotify</h3>
+  <p class="note" style="margin:0 0 8px">Paste a Spotify playlist, album or track link to play it instead of the soundscape. Free accounts hear 30-second previews; log in to Spotify in this browser for full tracks.</p>
+  <input class="spot-in" id="spotIn" type="url" placeholder="https://open.spotify.com/playlist/..." aria-label="Spotify link">
+  <div class="btn-row" style="margin-top:8px"><button class="ghost" id="spotGo">Play on Spotify</button><button class="ghost" id="spotOff">Back to soundscape</button></div>
+  <div class="field" style="margin-top:16px"><div class="field-row"><label for="musicVol">Music volume</label><output id="musicVolOut" for="musicVol"></output></div><input type="range" id="musicVol" min="0" max="100" step="1"><p class="note" id="musicVolNote" hidden>Spotify is playing. Use its own volume or your device volume.</p></div>
   <div class="field"><div class="field-row"><label for="bellVol">Bell and water volume</label><output id="bellVolOut" for="bellVol"></output></div><input type="range" id="bellVol" min="0" max="100" step="1"></div>
   <div class="btn-row"><button class="ghost" id="testBell">Ring the bell</button><button class="ghost" id="notifyBtn">Allow desktop alerts</button></div>
   <p class="note" id="notifyNote">The bell rings and the tab title changes when a session ends, even if this tab is in the background.</p>
@@ -1634,9 +1642,28 @@ $('#skipBtn').addEventListener('click', () => { const m = next(false); setMode(m
 document.querySelectorAll('.modes button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.mode !== T.mode) setMode(b.dataset.mode); }));
 
 /* Music toggle */
-function renderMusic() { const on = AE.musicOn; el.music.setAttribute('aria-pressed', String(on)); el.musicLbl.textContent = on ? 'Music on' : 'Music off'; }
-function toggleMusic() { if (AE.musicOn) { AE.stopMusic(); S.scapeOn = false; } else { AE.startMusic(); S.scapeOn = true; } saveSettings(); renderMusic(); }
+function renderMusic() { const on = AE.musicOn || !!S.spotify; el.music.setAttribute('aria-pressed', String(on)); el.musicLbl.textContent = S.spotify ? 'Spotify' : on ? 'Music on' : 'Music off'; }
+function toggleMusic() { if (S.spotify) { setSpotify(''); S.scapeOn = false; } else if (AE.musicOn) { AE.stopMusic(); S.scapeOn = false; } else { AE.startMusic(); S.scapeOn = true; } saveSettings(); renderMusic(); }
 el.music.addEventListener('click', toggleMusic);
+/* Spotify: the official embed player, so there is no login or API key. It can't feed the audio engine or the Last Dance. */
+function setSpotify(path) {
+  S.spotify = path; saveSettings();
+  const box = $('#spot'); box.hidden = !path;
+  $('#musicVol').disabled = !!path; $('#musicVolNote').hidden = !path;
+  box.innerHTML = path ? `<iframe src="https://open.spotify.com/embed/${path}" allow="autoplay; encrypted-media; clipboard-write" loading="lazy" title="Spotify player"></iframe>` : '';
+  if (path && AE.musicOn) AE.stopMusic();
+  renderMusic();
+}
+function parseSpotify(t) {
+  const m = t.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(playlist|album|track|artist|show|episode)\/([A-Za-z0-9]+)/) || t.match(/spotify:(playlist|album|track|artist|show|episode):([A-Za-z0-9]+)/);
+  return m ? `${m[1]}/${m[2]}` : '';
+}
+$('#spotGo').addEventListener('click', () => {
+  const p = parseSpotify($('#spotIn').value);
+  if (!p) return toast('That does not look like a Spotify link.');
+  S.scapeOn = false; setSpotify(p);
+});
+$('#spotOff').addEventListener('click', () => { setSpotify(''); S.scapeOn = true; saveSettings(); AE.startMusic(); renderMusic(); });
 if (S.scapeOn === undefined) S.scapeOn = true;
 
 /* Settings sheet */
@@ -1676,7 +1703,7 @@ ranges.forEach(([id, key, outId, f]) => {
 
 function renderScapes() { document.querySelectorAll('#scapes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scape === S.scape))); }
 document.querySelectorAll('#scapes button').forEach((b) => b.addEventListener('click', () => {
-  S.scape = b.dataset.scape; S.scapeOn = true; saveSettings(); renderScapes(); AE.startMusic(); renderMusic();
+  S.scape = b.dataset.scape; S.scapeOn = true; setSpotify(''); renderScapes(); AE.startMusic(); renderMusic();
 }));
 $('#testBell').addEventListener('click', () => AE.bell('rest'));
 const nBtn = $('#notifyBtn'), nNote = $('#notifyNote');
@@ -1736,7 +1763,7 @@ setInterval(checkPondExpiry, 30000);
 
 let resizeQueued = false;   // phones fire resize repeatedly while the address bar slides; lay out once per frame at most
 addEventListener('resize', () => { if (resizeQueued) return; resizeQueued = true; requestAnimationFrame(() => { resizeQueued = false; layout(); }); });
-readColors(); layout(); document.fonts?.ready.then(layout); renderStatic(); renderScapes(); renderMusic(); renderNotify();
+readColors(); layout(); document.fonts?.ready.then(layout); renderStatic(); renderScapes(); renderMusic(); renderNotify(); if (S.spotify) setSpotify(S.spotify);
 if (pondReset) toast('The pond has settled. A new, quiet pond begins.');
 requestAnimationFrame(frame);
 })();
